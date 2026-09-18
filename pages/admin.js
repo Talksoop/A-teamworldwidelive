@@ -180,6 +180,7 @@ function PricingAndOffers() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [showSkipForm, setShowSkipForm] = useState(false);
   const [showReactForm, setShowReactForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -254,6 +255,21 @@ function PricingAndOffers() {
     load();
   }
 
+  async function updateOffer(id, payload) {
+    const res = await fetch(`/api/offers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Couldn't save that offer.");
+      return;
+    }
+    setEditingId(null);
+    load();
+  }
+
   const skipOffers = offers.filter((o) => o.type === "SKIP");
   const reactOffers = offers.filter((o) => o.type === "REACT");
 
@@ -311,7 +327,16 @@ function PricingAndOffers() {
             onSave={createOffer}
           />
         )}
-        <OfferList offers={skipOffers} onToggle={toggleActive} onDelete={deleteOffer} showPriority />
+        <OfferList
+          offers={skipOffers}
+          onToggle={toggleActive}
+          onDelete={deleteOffer}
+          showPriority
+          editingId={editingId}
+          onStartEdit={setEditingId}
+          onCancelEdit={() => setEditingId(null)}
+          onSaveEdit={updateOffer}
+        />
       </section>
 
       <section style={styles.section}>
@@ -326,18 +351,26 @@ function PricingAndOffers() {
             onSave={createOffer}
           />
         )}
-        <OfferList offers={reactOffers} onToggle={toggleActive} onDelete={deleteOffer} />
+        <OfferList
+          offers={reactOffers}
+          onToggle={toggleActive}
+          onDelete={deleteOffer}
+          editingId={editingId}
+          onStartEdit={setEditingId}
+          onCancelEdit={() => setEditingId(null)}
+          onSaveEdit={updateOffer}
+        />
       </section>
     </div>
   );
 }
 
-function OfferForm({ type, onCancel, onSave }) {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [priority, setPriority] = useState("1");
-  const [bonusSubmissions, setBonusSubmissions] = useState("0");
-  const [description, setDescription] = useState("");
+function OfferForm({ type, initial, onCancel, onSave }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [price, setPrice] = useState(initial ? (initial.priceCents / 100).toFixed(2) : "");
+  const [priority, setPriority] = useState(String(initial?.priority ?? 1));
+  const [bonusSubmissions, setBonusSubmissions] = useState(String(initial?.bonusSubmissions ?? 0));
+  const [description, setDescription] = useState(initial?.description || "");
 
   function submit(e) {
     e.preventDefault();
@@ -411,7 +444,7 @@ function OfferForm({ type, onCancel, onSave }) {
       )}
       <div style={styles.formRow}>
         <button style={styles.saveBtn} type="submit">
-          Save
+          {initial ? "Save changes" : "Save"}
         </button>
         <button style={styles.cancelBtn} type="button" onClick={onCancel}>
           Cancel
@@ -421,31 +454,54 @@ function OfferForm({ type, onCancel, onSave }) {
   );
 }
 
-function OfferList({ offers, onToggle, onDelete, showPriority }) {
+function OfferList({
+  offers,
+  onToggle,
+  onDelete,
+  showPriority,
+  editingId,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+}) {
   if (offers.length === 0) {
     return <p style={styles.empty}>No offers yet</p>;
   }
   return (
     <div style={styles.offerGrid}>
-      {offers.map((o) => (
-        <div key={o.id} style={{ ...styles.offerCard, opacity: o.active ? 1 : 0.5 }}>
-          <p style={styles.offerCardName}>{o.name}</p>
-          <p style={styles.offerCardPrice}>{formatPrice(o.priceCents)}</p>
-          {o.description && <p style={styles.offerCardDesc}>{o.description}</p>}
-          {showPriority && <p style={styles.offerCardDesc}>Priority: {o.priority}</p>}
-          {showPriority && o.bonusSubmissions > 0 && (
-            <p style={styles.offerCardDesc}>+{o.bonusSubmissions} bonus song(s)</p>
-          )}
-          <div style={styles.offerCardBtns}>
-            <button style={styles.smallBtn} onClick={() => onToggle(o)}>
-              {o.active ? "Deactivate" : "Activate"}
-            </button>
-            <button style={styles.smallBtnDanger} onClick={() => onDelete(o.id)}>
-              Delete
-            </button>
+      {offers.map((o) =>
+        editingId === o.id ? (
+          <div key={o.id} style={styles.offerEditWrap}>
+            <OfferForm
+              type={o.type}
+              initial={o}
+              onCancel={onCancelEdit}
+              onSave={(payload) => onSaveEdit(o.id, payload)}
+            />
           </div>
-        </div>
-      ))}
+        ) : (
+          <div key={o.id} style={{ ...styles.offerCard, opacity: o.active ? 1 : 0.5 }}>
+            <p style={styles.offerCardName}>{o.name}</p>
+            <p style={styles.offerCardPrice}>{formatPrice(o.priceCents)}</p>
+            {o.description && <p style={styles.offerCardDesc}>{o.description}</p>}
+            {showPriority && <p style={styles.offerCardDesc}>Priority: {o.priority}</p>}
+            {showPriority && o.bonusSubmissions > 0 && (
+              <p style={styles.offerCardDesc}>+{o.bonusSubmissions} bonus song(s)</p>
+            )}
+            <div style={styles.offerCardBtns}>
+              <button style={styles.smallBtn} onClick={() => onStartEdit(o.id)}>
+                Edit
+              </button>
+              <button style={styles.smallBtn} onClick={() => onToggle(o)}>
+                {o.active ? "Deactivate" : "Activate"}
+              </button>
+              <button style={styles.smallBtnDanger} onClick={() => onDelete(o.id)}>
+                Delete
+              </button>
+            </div>
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -710,6 +766,9 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
+  },
+  offerEditWrap: {
+    gridColumn: "1 / -1",
   },
   offerCard: {
     background: "var(--panel)",
