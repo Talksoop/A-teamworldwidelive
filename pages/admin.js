@@ -84,7 +84,8 @@ export default function Admin() {
               {playing ? (
                 <div style={styles.playingCard}>
                   <div>
-                    <p style={styles.name}>{playing.name}</p>
+                    <p style={styles.name}>{playing.songName || "(no song name)"}</p>
+                    <p style={styles.submitter}>{playing.name}</p>
                     <a style={styles.link} href={playing.link} target="_blank" rel="noreferrer">
                       {playing.link}
                     </a>
@@ -109,9 +110,11 @@ export default function Admin() {
                     <li key={s.id} style={styles.row}>
                       <div>
                         <p style={styles.name}>
-                          {s.name}
+                          {s.songName || "(no song name)"}
                           {s.paid && <span style={styles.paidTag}>PAID</span>}
+                          {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
+                        <p style={styles.submitter}>{s.name}</p>
                         <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
                           {s.link}
                         </a>
@@ -135,9 +138,11 @@ export default function Admin() {
                     <li key={s.id} style={styles.row}>
                       <div>
                         <p style={styles.name}>
-                          {s.name}
+                          {s.songName || "(no song name)"}
                           {s.paid && <span style={styles.paidTag}>PAID</span>}
+                          {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
+                        <p style={styles.submitter}>{s.name}</p>
                         <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
                           {s.link}
                         </a>
@@ -331,6 +336,7 @@ function OfferForm({ type, onCancel, onSave }) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [priority, setPriority] = useState("1");
+  const [bonusSubmissions, setBonusSubmissions] = useState("0");
   const [description, setDescription] = useState("");
 
   function submit(e) {
@@ -342,6 +348,7 @@ function OfferForm({ type, onCancel, onSave }) {
       description: description || undefined,
       priceCents: cents,
       priority: type === "SKIP" ? parseInt(priority, 10) || 0 : undefined,
+      bonusSubmissions: type === "SKIP" ? parseInt(bonusSubmissions, 10) || 0 : undefined,
     });
   }
 
@@ -385,7 +392,22 @@ function OfferForm({ type, onCancel, onSave }) {
         )}
       </div>
       {type === "SKIP" && (
-        <p style={styles.hint}>Higher priority jumps further toward the front of the queue.</p>
+        <div style={styles.formRow}>
+          <input
+            style={{ ...styles.input, flex: 1 }}
+            type="number"
+            min="0"
+            placeholder="Bonus free songs"
+            value={bonusSubmissions}
+            onChange={(e) => setBonusSubmissions(e.target.value)}
+          />
+        </div>
+      )}
+      {type === "SKIP" && (
+        <p style={styles.hint}>
+          Higher priority jumps further toward the front of the queue. Bonus songs let the fan
+          submit that many extra tracks for free after paying, all with the same jump.
+        </p>
       )}
       <div style={styles.formRow}>
         <button style={styles.saveBtn} type="submit">
@@ -411,6 +433,9 @@ function OfferList({ offers, onToggle, onDelete, showPriority }) {
           <p style={styles.offerCardPrice}>{formatPrice(o.priceCents)}</p>
           {o.description && <p style={styles.offerCardDesc}>{o.description}</p>}
           {showPriority && <p style={styles.offerCardDesc}>Priority: {o.priority}</p>}
+          {showPriority && o.bonusSubmissions > 0 && (
+            <p style={styles.offerCardDesc}>+{o.bonusSubmissions} bonus song(s)</p>
+          )}
           <div style={styles.offerCardBtns}>
             <button style={styles.smallBtn} onClick={() => onToggle(o)}>
               {o.active ? "Deactivate" : "Activate"}
@@ -530,6 +555,20 @@ const styles = {
     padding: "2px 6px",
     borderRadius: 4,
     letterSpacing: "0.05em",
+  },
+  bonusTag: {
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    color: "var(--cyan)",
+    border: "1px solid var(--cyan)",
+    padding: "1px 6px",
+    borderRadius: 4,
+    letterSpacing: "0.05em",
+  },
+  submitter: {
+    fontSize: "0.78rem",
+    color: "var(--text-dim)",
+    margin: "0 0 2px",
   },
   link: {
     fontSize: "0.8rem",

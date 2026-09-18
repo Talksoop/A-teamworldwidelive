@@ -41,7 +41,8 @@ export default function Overlay() {
           </div>
           {data.playing ? (
             <>
-              <p style={styles.trackName}>{data.playing.name}</p>
+              <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
+              <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
               {data.playing.message && <p style={styles.trackMsg}>“{data.playing.message}”</p>}
             </>
           ) : (
@@ -57,7 +58,7 @@ export default function Overlay() {
             <ol style={styles.queueList}>
               {data.queue.slice(0, 6).map((item) => (
                 <li key={item.id} style={styles.queueItem}>
-                  {item.name}
+                  {item.songName || item.name}
                 </li>
               ))}
             </ol>
@@ -113,6 +114,11 @@ const styles = {
     fontSize: "0.9rem",
     marginTop: 8,
     marginBottom: 0,
+  },
+  trackSubmitter: {
+    color: "var(--text-dim)",
+    fontSize: "0.85rem",
+    margin: "4px 0 0",
   },
   idle: {
     color: "var(--text-dim)",

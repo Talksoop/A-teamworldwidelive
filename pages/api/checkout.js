@@ -7,15 +7,20 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const { name, link, message, skipOfferId, reactOfferId } = req.body || {};
+  const { name, songName, link, message, skipOfferId, reactOfferId } = req.body || {};
 
-  if (!name || !link) {
-    return res.status(400).json({ error: "Name and link are required." });
+  if (!name || !link || !songName) {
+    return res.status(400).json({ error: "Name, song name, and link are required." });
   }
   if (typeof link !== "string" || !/^https?:\/\//i.test(link.trim())) {
     return res.status(400).json({ error: "Link must be a valid URL." });
   }
-  if (name.length > 60 || (message && message.length > 300) || link.length > 500) {
+  if (
+    name.length > 60 ||
+    songName.length > 100 ||
+    (message && message.length > 300) ||
+    link.length > 500
+  ) {
     return res.status(400).json({ error: "One of the fields is too long." });
   }
 
@@ -45,6 +50,7 @@ export default async function handler(req, res) {
 
   const data = {
     name: name.trim(),
+    songName: songName.trim(),
     message: message ? message.trim() : null,
     link: link.trim(),
     skipOfferId: skipOffer?.id || null,
@@ -109,7 +115,7 @@ export default async function handler(req, res) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
-      success_url: `${origin}/submit?paid=1`,
+      success_url: `${origin}/submit?paid=1&submission=${submission.id}`,
       cancel_url: `${origin}/submit?canceled=1`,
       metadata: { submissionId: submission.id },
     });

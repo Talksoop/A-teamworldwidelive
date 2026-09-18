@@ -37,6 +37,7 @@ export default async function handler(req, res) {
         description: description ? description.trim() : null,
         priceCents,
         priority: type === "SKIP" ? Number(priority) || 0 : 0,
+        bonusSubmissions: type === "SKIP" ? Number(req.body.bonusSubmissions) || 0 : 0,
       },
     });
     return res.status(201).json(offer);

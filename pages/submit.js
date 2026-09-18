@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 
@@ -9,6 +9,7 @@ function formatPrice(cents) {
 export default function Submit() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [songName, setSongName] = useState("");
   const [link, setLink] = useState("");
   const [message, setMessage] = useState("");
   const [settings, setSettings] = useState(null);
@@ -16,8 +17,10 @@ export default function Submit() {
   const [reactOffers, setReactOffers] = useState([]);
   const [skipOfferId, setSkipOfferId] = useState("");
   const [reactOfferId, setReactOfferId] = useState("");
-  const [state, setState] = useState("idle"); // idle | sending | done | error
+  const [state, setState] = useState("idle"); // idle | sending | done | error | checking-payment | bonus | complete
   const [error, setError] = useState("");
+  const [parentId, setParentId] = useState(null);
+  const pollTries = useRef(0);
 
   useEffect(() => {
     async function load() {
@@ -31,11 +34,45 @@ export default function Submit() {
       setReactOffers(offers.filter((o) => o.type === "REACT"));
     }
     load();
+  }, []);
 
+  // Returning from Stripe: poll until the webhook has confirmed payment, then
+  // either prompt for a bonus song or wrap up.
+  useEffect(() => {
+    if (!router.isReady) return;
     if (router.query.canceled) {
       setError("Checkout was canceled — nothing was charged.");
+      return;
     }
-  }, [router.query.canceled]);
+    if (router.query.paid && router.query.submission) {
+      setState("checking-payment");
+      setParentId(router.query.submission);
+      pollTries.current = 0;
+      const poll = async () => {
+        pollTries.current += 1;
+        try {
+          const res = await fetch(`/api/submissions/${router.query.submission}/status`);
+          const data = await res.json();
+          if (data.paid) {
+            if (data.bonusRemaining > 0) {
+              setState("bonus");
+            } else {
+              setState("complete");
+            }
+            return;
+          }
+        } catch {
+          // keep polling
+        }
+        if (pollTries.current < 15) {
+          setTimeout(poll, 1500);
+        } else {
+          setState("complete"); // payment likely still processing; don't block them forever
+        }
+      };
+      poll();
+    }
+  }, [router.isReady, router.query.paid, router.query.submission, router.query.canceled]);
 
   const basePrice = settings?.submissionMode === "PAID" ? settings.basePriceCents : 0;
   const skipPrice = skipOffers.find((o) => o.id === skipOfferId)?.priceCents || 0;
@@ -52,6 +89,7 @@ export default function Submit() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
+          songName,
           link,
           message,
           skipOfferId: skipOfferId || undefined,
@@ -65,6 +103,7 @@ export default function Submit() {
       if (data.free) {
         setState("done");
         setName("");
+        setSongName("");
         setLink("");
         setMessage("");
         setSkipOfferId("");
@@ -78,14 +117,118 @@ export default function Submit() {
     }
   }
 
-  if (state === "done") {
+  async function handleBonusSubmit(e) {
+    e.preventDefault();
+    setState("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/submissions/bonus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentId, name, songName, link, message }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Couldn't submit that. Try again.");
+      }
+      setState("complete");
+    } catch (err) {
+      setState("error");
+      setError(err.message);
+    }
+  }
+
+  if (state === "checking-payment") {
+    return (
+      <main style={styles.main}>
+        <div style={styles.card}>
+          <div style={styles.pulse} aria-hidden="true" />
+          <h1 style={styles.doneTitle}>Confirming your payment…</h1>
+          <p style={styles.doneSub}>This only takes a second.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (state === "bonus") {
+    return (
+      <main style={styles.main}>
+        <form style={styles.card} onSubmit={handleBonusSubmit}>
+          <h1 style={styles.title}>Song paid for — add your second song</h1>
+          <p style={styles.sub}>
+            This one's already covered. It gets the same skip as your first pick.
+          </p>
+          <label style={styles.label}>
+            Your name
+            <input
+              style={styles.input}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={60}
+              required
+              placeholder="e.g. Jordan"
+            />
+          </label>
+          <label style={styles.label}>
+            Song name
+            <input
+              style={styles.input}
+              value={songName}
+              onChange={(e) => setSongName(e.target.value)}
+              maxLength={100}
+              required
+              placeholder="Track title"
+            />
+          </label>
+          <label style={styles.label}>
+            Link
+            <input
+              style={styles.input}
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              type="url"
+              maxLength={500}
+              required
+              placeholder="https://open.spotify.com/track/..."
+            />
+          </label>
+          <label style={styles.label}>
+            Message (optional)
+            <textarea
+              style={{ ...styles.input, height: 80, resize: "vertical" }}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              maxLength={300}
+              placeholder="Anything you want said before it plays"
+            />
+          </label>
+          {error && <p style={styles.error}>{error}</p>}
+          <button style={styles.primaryBtn} type="submit">
+            Submit second song
+          </button>
+        </form>
+      </main>
+    );
+  }
+
+  if (state === "complete" || state === "done") {
     return (
       <main style={styles.main}>
         <div style={styles.card}>
           <div style={styles.pulse} aria-hidden="true" />
           <h1 style={styles.doneTitle}>You're in the queue</h1>
           <p style={styles.doneSub}>Keep an eye on the stream — it'll play when it's up.</p>
-          <button style={styles.secondaryBtn} onClick={() => setState("idle")}>
+          <button
+            style={styles.secondaryBtn}
+            onClick={() => {
+              setState("idle");
+              setName("");
+              setSongName("");
+              setLink("");
+              setMessage("");
+              router.replace("/submit", undefined, { shallow: true });
+            }}
+          >
             Submit another
           </button>
         </div>
@@ -116,6 +259,18 @@ export default function Submit() {
               maxLength={60}
               required
               placeholder="e.g. Jordan"
+            />
+          </label>
+
+          <label style={styles.label}>
+            Song name
+            <input
+              style={styles.input}
+              value={songName}
+              onChange={(e) => setSongName(e.target.value)}
+              maxLength={100}
+              required
+              placeholder="Track title"
             />
           </label>
 
@@ -159,6 +314,12 @@ export default function Submit() {
                   />
                   <span style={styles.offerName}>{o.name}</span>
                   {o.description && <span style={styles.offerDesc}>{o.description}</span>}
+                  {o.bonusSubmissions > 0 && (
+                    <span style={styles.offerDesc}>
+                      + submit {o.bonusSubmissions} more song{o.bonusSubmissions > 1 ? "s" : ""}{" "}
+                      free, same skip
+                    </span>
+                  )}
                   <span style={styles.offerPrice}>{formatPrice(o.priceCents)}</span>
                 </div>
               ))}
@@ -231,7 +392,7 @@ const styles = {
   title: {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
-    fontSize: "1.8rem",
+    fontSize: "1.6rem",
     margin: "0 0 6px",
   },
   sub: {
@@ -270,6 +431,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 8,
+    flexWrap: "wrap",
     background: "var(--panel-raised)",
     border: "1px solid var(--line)",
     borderRadius: 8,
@@ -339,7 +501,7 @@ const styles = {
   doneTitle: {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
-    fontSize: "1.6rem",
+    fontSize: "1.5rem",
     margin: "0 0 8px",
   },
   doneSub: {

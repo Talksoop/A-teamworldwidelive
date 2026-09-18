@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === "PATCH") {
-    const { name, description, priceCents, priority, active } = req.body || {};
+    const { name, description, priceCents, priority, bonusSubmissions, active } = req.body || {};
     if (typeof priceCents !== "undefined" && (!Number.isInteger(priceCents) || priceCents <= 0)) {
       return res.status(400).json({ error: "priceCents must be a positive integer." });
     }
@@ -20,6 +20,9 @@ export default async function handler(req, res) {
         ...(typeof description !== "undefined" ? { description } : {}),
         ...(typeof priceCents !== "undefined" ? { priceCents } : {}),
         ...(typeof priority !== "undefined" ? { priority: Number(priority) || 0 } : {}),
+        ...(typeof bonusSubmissions !== "undefined"
+          ? { bonusSubmissions: Number(bonusSubmissions) || 0 }
+          : {}),
         ...(typeof active !== "undefined" ? { active: Boolean(active) } : {}),
       },
     });
