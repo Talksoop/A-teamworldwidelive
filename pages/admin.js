@@ -11,7 +11,12 @@ export async function getServerSideProps({ req }) {
 
 const POLL_MS = 4000;
 
+function formatPrice(cents) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 export default function Admin() {
+  const [tab, setTab] = useState("queue");
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState("");
 
@@ -55,85 +60,368 @@ export default function Admin() {
         <title>Admin — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
-        <h1 style={styles.title}>Queue control</h1>
+        <h1 style={styles.title}>Admin</h1>
+        <div style={styles.tabs}>
+          <button
+            style={tab === "queue" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("queue")}
+          >
+            Queue
+          </button>
+          <button
+            style={tab === "pricing" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("pricing")}
+          >
+            Pricing &amp; Offers
+          </button>
+        </div>
         {error && <p style={styles.error}>{error}</p>}
 
-        <section style={styles.section}>
-          <p style={styles.sectionLabel}>Now playing</p>
-          {playing ? (
-            <div style={styles.playingCard}>
-              <div>
-                <p style={styles.name}>{playing.name}</p>
-                <a style={styles.link} href={playing.link} target="_blank" rel="noreferrer">
-                  {playing.link}
-                </a>
-                {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
-              </div>
-              <button style={styles.doneBtn} onClick={() => updateStatus(playing.id, "DONE")}>
-                Mark done
-              </button>
-            </div>
-          ) : (
-            <p style={styles.empty}>Nothing playing — pick from the queue below</p>
-          )}
-        </section>
-
-        <section style={styles.section}>
-          <p style={styles.sectionLabel}>Queue ({queued.length})</p>
-          {queued.length === 0 ? (
-            <p style={styles.empty}>Queue is empty</p>
-          ) : (
-            <ul style={styles.list}>
-              {queued.map((s) => (
-                <li key={s.id} style={styles.row}>
+        {tab === "queue" ? (
+          <>
+            <section style={styles.section}>
+              <p style={styles.sectionLabel}>Now playing</p>
+              {playing ? (
+                <div style={styles.playingCard}>
                   <div>
-                    <p style={styles.name}>{s.name}</p>
-                    <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
-                      {s.link}
+                    <p style={styles.name}>{playing.name}</p>
+                    <a style={styles.link} href={playing.link} target="_blank" rel="noreferrer">
+                      {playing.link}
                     </a>
+                    {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
                   </div>
-                  <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
-                    Play
+                  <button style={styles.doneBtn} onClick={() => updateStatus(playing.id, "DONE")}>
+                    Mark done
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                </div>
+              ) : (
+                <p style={styles.empty}>Nothing playing — pick from the queue below</p>
+              )}
+            </section>
 
-        <section style={styles.section}>
-          <p style={styles.sectionLabel}>Pending review ({pending.length})</p>
-          {pending.length === 0 ? (
-            <p style={styles.empty}>Nothing new</p>
-          ) : (
-            <ul style={styles.list}>
-              {pending.map((s) => (
-                <li key={s.id} style={styles.row}>
-                  <div>
-                    <p style={styles.name}>{s.name}</p>
-                    <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
-                      {s.link}
-                    </a>
-                    {s.message && <p style={styles.msg}>“{s.message}”</p>}
-                  </div>
-                  <div style={styles.rowBtns}>
-                    <button style={styles.playBtn} onClick={() => updateStatus(s.id, "QUEUED")}>
-                      Add to queue
-                    </button>
-                    <button
-                      style={styles.rejectBtn}
-                      onClick={() => updateStatus(s.id, "REJECTED")}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+            <section style={styles.section}>
+              <p style={styles.sectionLabel}>Queue ({queued.length})</p>
+              {queued.length === 0 ? (
+                <p style={styles.empty}>Queue is empty</p>
+              ) : (
+                <ul style={styles.list}>
+                  {queued.map((s) => (
+                    <li key={s.id} style={styles.row}>
+                      <div>
+                        <p style={styles.name}>
+                          {s.name}
+                          {s.paid && <span style={styles.paidTag}>PAID</span>}
+                        </p>
+                        <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
+                          {s.link}
+                        </a>
+                      </div>
+                      <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
+                        Play
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section style={styles.section}>
+              <p style={styles.sectionLabel}>Pending review ({pending.length})</p>
+              {pending.length === 0 ? (
+                <p style={styles.empty}>Nothing new</p>
+              ) : (
+                <ul style={styles.list}>
+                  {pending.map((s) => (
+                    <li key={s.id} style={styles.row}>
+                      <div>
+                        <p style={styles.name}>
+                          {s.name}
+                          {s.paid && <span style={styles.paidTag}>PAID</span>}
+                        </p>
+                        <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
+                          {s.link}
+                        </a>
+                        {s.message && <p style={styles.msg}>“{s.message}”</p>}
+                      </div>
+                      <div style={styles.rowBtns}>
+                        <button style={styles.playBtn} onClick={() => updateStatus(s.id, "QUEUED")}>
+                          Add to queue
+                        </button>
+                        <button
+                          style={styles.rejectBtn}
+                          onClick={() => updateStatus(s.id, "REJECTED")}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        ) : (
+          <PricingAndOffers />
+        )}
       </main>
     </>
+  );
+}
+
+function PricingAndOffers() {
+  const [settings, setSettings] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [basePriceInput, setBasePriceInput] = useState("0");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [showSkipForm, setShowSkipForm] = useState(false);
+  const [showReactForm, setShowReactForm] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const [settingsRes, offersRes] = await Promise.all([
+      fetch("/api/settings"),
+      fetch("/api/offers?all=1"),
+    ]);
+    const s = await settingsRes.json();
+    setSettings(s);
+    setBasePriceInput((s.basePriceCents / 100).toFixed(2));
+    setOffers(await offersRes.json());
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function setMode(mode) {
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submissionMode: mode }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
+  async function saveBasePrice() {
+    const cents = Math.round(parseFloat(basePriceInput || "0") * 100);
+    if (Number.isNaN(cents) || cents < 0) {
+      setError("Enter a valid price.");
+      return;
+    }
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ basePriceCents: cents }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
+  async function toggleActive(offer) {
+    await fetch(`/api/offers/${offer.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !offer.active }),
+    });
+    load();
+  }
+
+  async function deleteOffer(id) {
+    await fetch(`/api/offers/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  async function createOffer(payload) {
+    const res = await fetch("/api/offers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Couldn't save that offer.");
+      return;
+    }
+    setShowSkipForm(false);
+    setShowReactForm(false);
+    load();
+  }
+
+  const skipOffers = offers.filter((o) => o.type === "SKIP");
+  const reactOffers = offers.filter((o) => o.type === "REACT");
+
+  if (!settings) return null;
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Base submission price</p>
+        <div style={styles.modeToggle}>
+          <button
+            style={settings.submissionMode === "FREE" ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setMode("FREE")}
+            disabled={savingSettings}
+          >
+            Free
+          </button>
+          <button
+            style={settings.submissionMode === "PAID" ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setMode("PAID")}
+            disabled={savingSettings}
+          >
+            Paid
+          </button>
+        </div>
+        {settings.submissionMode === "PAID" && (
+          <div style={styles.priceRow}>
+            <span style={styles.dollarSign}>$</span>
+            <input
+              style={styles.priceInput}
+              type="number"
+              min="0"
+              step="0.01"
+              value={basePriceInput}
+              onChange={(e) => setBasePriceInput(e.target.value)}
+            />
+            <button style={styles.saveBtn} onClick={saveBasePrice} disabled={savingSettings}>
+              Save
+            </button>
+          </div>
+        )}
+      </section>
+
+      {error && <p style={styles.error}>{error}</p>}
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Skip offers</p>
+        <button style={styles.addBtn} onClick={() => setShowSkipForm((v) => !v)}>
+          + Add skip offer
+        </button>
+        {showSkipForm && (
+          <OfferForm
+            type="SKIP"
+            onCancel={() => setShowSkipForm(false)}
+            onSave={createOffer}
+          />
+        )}
+        <OfferList offers={skipOffers} onToggle={toggleActive} onDelete={deleteOffer} showPriority />
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>React offers</p>
+        <button style={styles.addBtn} onClick={() => setShowReactForm((v) => !v)}>
+          + Add react offer
+        </button>
+        {showReactForm && (
+          <OfferForm
+            type="REACT"
+            onCancel={() => setShowReactForm(false)}
+            onSave={createOffer}
+          />
+        )}
+        <OfferList offers={reactOffers} onToggle={toggleActive} onDelete={deleteOffer} />
+      </section>
+    </div>
+  );
+}
+
+function OfferForm({ type, onCancel, onSave }) {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [priority, setPriority] = useState("1");
+  const [description, setDescription] = useState("");
+
+  function submit(e) {
+    e.preventDefault();
+    const cents = Math.round(parseFloat(price || "0") * 100);
+    onSave({
+      type,
+      name,
+      description: description || undefined,
+      priceCents: cents,
+      priority: type === "SKIP" ? parseInt(priority, 10) || 0 : undefined,
+    });
+  }
+
+  return (
+    <form style={styles.offerForm} onSubmit={submit}>
+      <input
+        style={styles.input}
+        placeholder="Name (e.g. Skip the line)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={80}
+        required
+      />
+      <input
+        style={styles.input}
+        placeholder="Description (optional)"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        maxLength={200}
+      />
+      <div style={styles.formRow}>
+        <input
+          style={{ ...styles.input, flex: 1 }}
+          type="number"
+          min="0.01"
+          step="0.01"
+          placeholder="Price ($)"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          required
+        />
+        {type === "SKIP" && (
+          <input
+            style={{ ...styles.input, flex: 1 }}
+            type="number"
+            min="0"
+            placeholder="Jump priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+          />
+        )}
+      </div>
+      {type === "SKIP" && (
+        <p style={styles.hint}>Higher priority jumps further toward the front of the queue.</p>
+      )}
+      <div style={styles.formRow}>
+        <button style={styles.saveBtn} type="submit">
+          Save
+        </button>
+        <button style={styles.cancelBtn} type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function OfferList({ offers, onToggle, onDelete, showPriority }) {
+  if (offers.length === 0) {
+    return <p style={styles.empty}>No offers yet</p>;
+  }
+  return (
+    <div style={styles.offerGrid}>
+      {offers.map((o) => (
+        <div key={o.id} style={{ ...styles.offerCard, opacity: o.active ? 1 : 0.5 }}>
+          <p style={styles.offerCardName}>{o.name}</p>
+          <p style={styles.offerCardPrice}>{formatPrice(o.priceCents)}</p>
+          {o.description && <p style={styles.offerCardDesc}>{o.description}</p>}
+          {showPriority && <p style={styles.offerCardDesc}>Priority: {o.priority}</p>}
+          <div style={styles.offerCardBtns}>
+            <button style={styles.smallBtn} onClick={() => onToggle(o)}>
+              {o.active ? "Deactivate" : "Activate"}
+            </button>
+            <button style={styles.smallBtnDanger} onClick={() => onDelete(o.id)}>
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -147,7 +435,31 @@ const styles = {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
     fontSize: "1.8rem",
-    margin: "0 0 28px",
+    margin: "0 0 20px",
+  },
+  tabs: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 24,
+    borderBottom: "1px solid var(--line)",
+  },
+  tab: {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    fontSize: "0.9rem",
+    padding: "10px 4px",
+    borderBottom: "2px solid transparent",
+  },
+  tabActive: {
+    background: "transparent",
+    border: "none",
+    color: "var(--cyan)",
+    fontWeight: 600,
+    fontSize: "0.9rem",
+    padding: "10px 4px",
+    borderBottom: "2px solid var(--cyan)",
   },
   error: {
     color: "var(--live)",
@@ -206,6 +518,18 @@ const styles = {
     fontWeight: 600,
     margin: "0 0 2px",
     fontSize: "0.95rem",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  paidTag: {
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    color: "#05060e",
+    background: "var(--gradient)",
+    padding: "2px 6px",
+    borderRadius: 4,
+    letterSpacing: "0.05em",
   },
   link: {
     fontSize: "0.8rem",
@@ -246,5 +570,150 @@ const styles = {
     borderRadius: 7,
     fontSize: "0.85rem",
     whiteSpace: "nowrap",
+  },
+  modeToggle: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 12,
+  },
+  modeBtn: {
+    background: "var(--panel)",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    padding: "8px 20px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  modeBtnActive: {
+    background: "var(--gradient)",
+    border: "1px solid transparent",
+    color: "#05060e",
+    fontWeight: 700,
+    padding: "8px 20px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  priceRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  dollarSign: {
+    color: "var(--text-dim)",
+  },
+  priceInput: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    borderRadius: 7,
+    padding: "8px 10px",
+    color: "var(--text)",
+    fontSize: "0.9rem",
+    width: 100,
+  },
+  saveBtn: {
+    background: "var(--gradient)",
+    color: "#05060e",
+    border: "none",
+    fontWeight: 600,
+    padding: "8px 16px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  cancelBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 500,
+    padding: "8px 16px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  addBtn: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--cyan)",
+    color: "var(--cyan)",
+    fontWeight: 600,
+    padding: "10px 16px",
+    borderRadius: 8,
+    fontSize: "0.85rem",
+    marginBottom: 12,
+  },
+  offerForm: {
+    background: "var(--panel)",
+    border: "1px solid var(--line)",
+    borderRadius: 10,
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    marginBottom: 14,
+  },
+  input: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    borderRadius: 7,
+    padding: "9px 11px",
+    color: "var(--text)",
+    fontSize: "0.9rem",
+    outline: "none",
+  },
+  formRow: {
+    display: "flex",
+    gap: 8,
+  },
+  hint: {
+    fontSize: "0.78rem",
+    color: "var(--text-dim)",
+    margin: 0,
+  },
+  offerGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+  offerCard: {
+    background: "var(--panel)",
+    border: "1px solid var(--line)",
+    borderRadius: 10,
+    padding: 14,
+  },
+  offerCardName: {
+    fontWeight: 600,
+    fontSize: "0.9rem",
+    margin: "0 0 4px",
+  },
+  offerCardPrice: {
+    color: "var(--cyan)",
+    fontWeight: 700,
+    fontSize: "1rem",
+    margin: "0 0 4px",
+  },
+  offerCardDesc: {
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    margin: "0 0 8px",
+  },
+  offerCardBtns: {
+    display: "flex",
+    gap: 6,
+  },
+  smallBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontSize: "0.75rem",
+    padding: "5px 8px",
+    borderRadius: 6,
+    flex: 1,
+  },
+  smallBtnDanger: {
+    background: "transparent",
+    border: "1px solid var(--live)",
+    color: "var(--live)",
+    fontSize: "0.75rem",
+    padding: "5px 8px",
+    borderRadius: 6,
+    flex: 1,
   },
 };

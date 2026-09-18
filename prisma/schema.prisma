@@ -8,11 +8,33 @@ generator client {
 }
 
 model Submission {
-  id        String   @id @default(cuid())
-  name      String
-  message   String?
-  link      String
-  status    String   @default("PENDING") // PENDING | QUEUED | PLAYING | DONE | REJECTED
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  name            String
+  message         String?
+  link            String
+  status          String   @default("PENDING") // PENDING_PAYMENT | PENDING | QUEUED | PLAYING | DONE | REJECTED
+  order           Int      @default(0)
+  paid            Boolean  @default(false)
+  amountCents     Int      @default(0)
+  skipOfferId     String?
+  reactOfferId    String?
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  type        String // SKIP | REACT
+  name        String
+  description String?
+  priceCents  Int
+  priority    Int      @default(0) // SKIP only: higher = jumps further toward the front
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Settings {
+  id             String @id @default("singleton")
+  submissionMode String @default("FREE") // FREE | PAID
+  basePriceCents Int    @default(0)
 }
