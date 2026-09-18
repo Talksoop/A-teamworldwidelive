@@ -1,17 +1,20 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #15120e;
-  --panel: #1f1a14;
-  --panel-raised: #2a2319;
-  --line: #3a3123;
-  --text: #f2ecdf;
-  --text-dim: #a69b87;
-  --accent: #e8a33d;
-  --accent-dim: #7a5a26;
-  --live: #d94f3d;
-  --font-head: "Space Grotesk", sans-serif;
-  --font-body: "IBM Plex Sans", sans-serif;
+  --bg: #05060e;
+  --panel: #0c0f1e;
+  --panel-raised: #141830;
+  --line: #262c50;
+  --text: #eef1fb;
+  --text-dim: #8f96bf;
+  --cyan: #4fd8f5;
+  --purple: #9b6bff;
+  --live: #ff4d7e;
+  --gradient: linear-gradient(135deg, var(--cyan), var(--purple));
+  --glow-cyan: 0 0 12px rgba(79, 216, 245, 0.55);
+  --glow-purple: 0 0 16px rgba(155, 107, 255, 0.45);
+  --font-head: "Orbitron", sans-serif;
+  --font-body: "Rajdhani", sans-serif;
 }
 
 * {
@@ -25,6 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-size: 17px;
 }
 
 a {
@@ -42,6 +46,15 @@ textarea {
 }
 
 ::selection {
-  background: var(--accent);
-  color: #15120e;
+  background: var(--purple);
+  color: #05060e;
 }
+
+.glow-text {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(var(--glow-cyan));
+}
+

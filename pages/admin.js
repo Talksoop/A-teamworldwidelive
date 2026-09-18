@@ -52,7 +52,7 @@ export default function Admin() {
   return (
     <>
       <Head>
-        <title>Admin — Aux Cord</title>
+        <title>Admin — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
         <h1 style={styles.title}>Queue control</h1>
@@ -145,7 +145,7 @@ const styles = {
   },
   title: {
     fontFamily: "var(--font-head)",
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: "1.8rem",
     margin: "0 0 28px",
   },
@@ -170,7 +170,8 @@ const styles = {
   },
   playingCard: {
     background: "var(--panel)",
-    border: "1px solid var(--accent-dim)",
+    border: "1px solid var(--purple)",
+    boxShadow: "var(--glow-purple)",
     borderRadius: 10,
     padding: "16px 18px",
     display: "flex",
@@ -217,8 +218,8 @@ const styles = {
     margin: "6px 0 0",
   },
   playBtn: {
-    background: "var(--accent)",
-    color: "#15120e",
+    background: "var(--gradient)",
+    color: "#05060e",
     border: "none",
     fontWeight: 600,
     padding: "8px 16px",

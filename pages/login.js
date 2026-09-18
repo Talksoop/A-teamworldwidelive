@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Admin login — Aux Cord</title>
+        <title>Admin login — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
         <form style={styles.card} onSubmit={handleSubmit}>
@@ -72,7 +72,7 @@ const styles = {
   },
   title: {
     fontFamily: "var(--font-head)",
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: "1.4rem",
     margin: "0 0 6px",
     textAlign: "center",
@@ -92,8 +92,8 @@ const styles = {
     margin: 0,
   },
   btn: {
-    background: "var(--accent)",
-    color: "#15120e",
+    background: "var(--gradient)",
+    color: "#05060e",
     border: "none",
     fontWeight: 600,
     padding: "11px",

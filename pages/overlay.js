@@ -31,7 +31,7 @@ export default function Overlay() {
   return (
     <>
       <Head>
-        <title>Aux Cord — Live</title>
+        <title>A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
         <section style={styles.nowPlaying}>
@@ -104,7 +104,7 @@ const styles = {
   },
   trackName: {
     fontFamily: "var(--font-head)",
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: "1.5rem",
     margin: 0,
   },
