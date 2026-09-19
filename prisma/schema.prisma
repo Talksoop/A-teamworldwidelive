@@ -12,7 +12,8 @@ model Submission {
   name               String
   songName           String?
   message            String?
-  link               String
+  link               String // pasted URL, or the S3 object key when sourceType is UPLOAD
+  sourceType         String   @default("LINK") // LINK | UPLOAD
   status             String   @default("PENDING") // PENDING_PAYMENT | PENDING | QUEUED | PLAYING | DONE | REJECTED
   order              Int      @default(0)
   paid               Boolean  @default(false)

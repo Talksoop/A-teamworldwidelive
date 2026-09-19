@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { isAuthed } from "../../../lib/auth";
+import { attachPlayUrls } from "../../../lib/s3";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -12,17 +13,18 @@ export default async function handler(req, res) {
       where: status ? { status } : undefined,
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     });
-    return res.status(200).json(submissions);
+    return res.status(200).json(await attachPlayUrls(submissions));
   }
 
   if (req.method === "POST") {
     // Public submission endpoint.
-    const { name, songName, message, link } = req.body || {};
+    const { name, songName, message, link, sourceType } = req.body || {};
+    const isUpload = sourceType === "UPLOAD";
 
     if (!name || !link || !songName) {
       return res.status(400).json({ error: "Name, song name, and link are required." });
     }
-    if (typeof link !== "string" || !/^https?:\/\//i.test(link.trim())) {
+    if (!isUpload && (typeof link !== "string" || !/^https?:\/\//i.test(link.trim()))) {
       return res.status(400).json({ error: "Link must be a valid URL." });
     }
     if (
@@ -40,6 +42,7 @@ export default async function handler(req, res) {
         songName: songName.trim(),
         message: message ? message.trim() : null,
         link: link.trim(),
+        sourceType: isUpload ? "UPLOAD" : "LINK",
         status: "PENDING",
       },
     });

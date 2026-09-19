@@ -7,12 +7,13 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const { name, songName, link, message, skipOfferId, reactOfferId } = req.body || {};
+  const { name, songName, link, message, sourceType, skipOfferId, reactOfferId } = req.body || {};
+  const isUpload = sourceType === "UPLOAD";
 
   if (!name || !link || !songName) {
     return res.status(400).json({ error: "Name, song name, and link are required." });
   }
-  if (typeof link !== "string" || !/^https?:\/\//i.test(link.trim())) {
+  if (!isUpload && (typeof link !== "string" || !/^https?:\/\//i.test(link.trim()))) {
     return res.status(400).json({ error: "Link must be a valid URL." });
   }
   if (
@@ -53,6 +54,7 @@ export default async function handler(req, res) {
     songName: songName.trim(),
     message: message ? message.trim() : null,
     link: link.trim(),
+    sourceType: isUpload ? "UPLOAD" : "LINK",
     skipOfferId: skipOffer?.id || null,
     reactOfferId: reactOffer?.id || null,
     amountCents: totalCents,

@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { attachPlayUrls } from "../../lib/s3";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -14,5 +15,9 @@ export default async function handler(req, res) {
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
   });
 
-  return res.status(200).json({ playing, queue });
+  const [playingWithUrl] = playing ? await attachPlayUrls([playing]) : [null];
+  const queueWithUrls = await attachPlayUrls(queue);
+
+  return res.status(200).json({ playing: playingWithUrl, queue: queueWithUrls });
 }
+

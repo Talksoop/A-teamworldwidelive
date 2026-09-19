@@ -86,8 +86,8 @@ export default function Admin() {
                   <div>
                     <p style={styles.name}>{playing.songName || "(no song name)"}</p>
                     <p style={styles.submitter}>{playing.name}</p>
-                    <a style={styles.link} href={playing.link} target="_blank" rel="noreferrer">
-                      {playing.link}
+                    <a style={styles.link} href={playing.playUrl || playing.link} target="_blank" rel="noreferrer">
+                      {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
                     </a>
                     {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
                   </div>
@@ -115,8 +115,8 @@ export default function Admin() {
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
                         <p style={styles.submitter}>{s.name}</p>
-                        <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
-                          {s.link}
+                        <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
+                          {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
                         </a>
                       </div>
                       <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
@@ -143,8 +143,8 @@ export default function Admin() {
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
                         <p style={styles.submitter}>{s.name}</p>
-                        <a style={styles.link} href={s.link} target="_blank" rel="noreferrer">
-                          {s.link}
+                        <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
+                          {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
                         </a>
                         {s.message && <p style={styles.msg}>“{s.message}”</p>}
                       </div>

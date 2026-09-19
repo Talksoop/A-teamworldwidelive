@@ -44,6 +44,27 @@ export default function Overlay() {
               <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
               <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
               {data.playing.message && <p style={styles.trackMsg}>“{data.playing.message}”</p>}
+              {data.playing.sourceType === "UPLOAD" && data.playing.playUrl && (
+                <div style={styles.playerWrap}>
+                  {data.playing.link.endsWith(".mp4") ? (
+                    <video
+                      key={data.playing.id}
+                      style={styles.player}
+                      src={data.playing.playUrl}
+                      controls
+                      autoPlay
+                    />
+                  ) : (
+                    <audio
+                      key={data.playing.id}
+                      style={styles.player}
+                      src={data.playing.playUrl}
+                      controls
+                      autoPlay
+                    />
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <p style={styles.idle}>Nothing queued up yet</p>
@@ -119,6 +140,13 @@ const styles = {
     color: "var(--text-dim)",
     fontSize: "0.85rem",
     margin: "4px 0 0",
+  },
+  playerWrap: {
+    marginTop: 12,
+  },
+  player: {
+    width: "100%",
+    maxHeight: 220,
   },
   idle: {
     color: "var(--text-dim)",

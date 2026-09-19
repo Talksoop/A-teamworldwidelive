@@ -12,6 +12,11 @@ export default function Submit() {
   const [songName, setSongName] = useState("");
   const [link, setLink] = useState("");
   const [message, setMessage] = useState("");
+  const [sourceMode, setSourceMode] = useState("link"); // link | upload
+  const [uploadKey, setUploadKey] = useState("");
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [settings, setSettings] = useState(null);
   const [skipOffers, setSkipOffers] = useState([]);
   const [reactOffers, setReactOffers] = useState([]);
@@ -79,8 +84,34 @@ export default function Submit() {
   const reactPrice = reactOffers.find((o) => o.id === reactOfferId)?.priceCents || 0;
   const total = basePrice + skipPrice + reactPrice;
 
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError("");
+    setUploadKey("");
+    setUploadFileName(file.name);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      setUploadKey(data.key);
+    } catch (err) {
+      setUploadError(err.message);
+      setUploadFileName("");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (sourceMode === "upload" && !uploadKey) {
+      setError(uploading ? "Still uploading — wait a moment." : "Choose a file first.");
+      return;
+    }
     setState("sending");
     setError("");
     try {
@@ -90,7 +121,8 @@ export default function Submit() {
         body: JSON.stringify({
           name,
           songName,
-          link,
+          link: sourceMode === "upload" ? uploadKey : link,
+          sourceType: sourceMode === "upload" ? "UPLOAD" : "LINK",
           message,
           skipOfferId: skipOfferId || undefined,
           reactOfferId: reactOfferId || undefined,
@@ -108,6 +140,8 @@ export default function Submit() {
         setMessage("");
         setSkipOfferId("");
         setReactOfferId("");
+        setUploadKey("");
+        setUploadFileName("");
       } else {
         window.location.href = data.url;
       }
@@ -119,13 +153,24 @@ export default function Submit() {
 
   async function handleBonusSubmit(e) {
     e.preventDefault();
+    if (sourceMode === "upload" && !uploadKey) {
+      setError(uploading ? "Still uploading — wait a moment." : "Choose a file first.");
+      return;
+    }
     setState("sending");
     setError("");
     try {
       const res = await fetch("/api/submissions/bonus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentId, name, songName, link, message }),
+        body: JSON.stringify({
+          parentId,
+          name,
+          songName,
+          link: sourceMode === "upload" ? uploadKey : link,
+          sourceType: sourceMode === "upload" ? "UPLOAD" : "LINK",
+          message,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -180,18 +225,51 @@ export default function Submit() {
               placeholder="Track title"
             />
           </label>
-          <label style={styles.label}>
-            Link
-            <input
-              style={styles.input}
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              type="url"
-              maxLength={500}
-              required
-              placeholder="https://open.spotify.com/track/..."
-            />
-          </label>
+          <div style={styles.sourceToggle}>
+            <button
+              type="button"
+              style={sourceMode === "link" ? styles.sourceBtnActive : styles.sourceBtn}
+              onClick={() => setSourceMode("link")}
+            >
+              Paste a link
+            </button>
+            <button
+              type="button"
+              style={sourceMode === "upload" ? styles.sourceBtnActive : styles.sourceBtn}
+              onClick={() => setSourceMode("upload")}
+            >
+              Upload a file
+            </button>
+          </div>
+          {sourceMode === "link" ? (
+            <label style={styles.label}>
+              Link
+              <input
+                style={styles.input}
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                type="url"
+                maxLength={500}
+                required={sourceMode === "link"}
+                placeholder="https://open.spotify.com/track/..."
+              />
+            </label>
+          ) : (
+            <label style={styles.label}>
+              File (MP3, WAV, or MP4 — max 50MB)
+              <input
+                style={styles.input}
+                type="file"
+                accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,video/mp4"
+                onChange={handleFileChange}
+              />
+              {uploading && <span style={styles.uploadStatus}>Uploading…</span>}
+              {!uploading && uploadKey && (
+                <span style={styles.uploadStatus}>✓ {uploadFileName} uploaded</span>
+              )}
+              {uploadError && <span style={styles.error}>{uploadError}</span>}
+            </label>
+          )}
           <label style={styles.label}>
             Message (optional)
             <textarea
@@ -274,18 +352,52 @@ export default function Submit() {
             />
           </label>
 
-          <label style={styles.label}>
-            Link
-            <input
-              style={styles.input}
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              type="url"
-              maxLength={500}
-              required
-              placeholder="https://open.spotify.com/track/..."
-            />
-          </label>
+          <div style={styles.sourceToggle}>
+            <button
+              type="button"
+              style={sourceMode === "link" ? styles.sourceBtnActive : styles.sourceBtn}
+              onClick={() => setSourceMode("link")}
+            >
+              Paste a link
+            </button>
+            <button
+              type="button"
+              style={sourceMode === "upload" ? styles.sourceBtnActive : styles.sourceBtn}
+              onClick={() => setSourceMode("upload")}
+            >
+              Upload a file
+            </button>
+          </div>
+
+          {sourceMode === "link" ? (
+            <label style={styles.label}>
+              Link
+              <input
+                style={styles.input}
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                type="url"
+                maxLength={500}
+                required={sourceMode === "link"}
+                placeholder="https://open.spotify.com/track/..."
+              />
+            </label>
+          ) : (
+            <label style={styles.label}>
+              File (MP3, WAV, or MP4 — max 50MB)
+              <input
+                style={styles.input}
+                type="file"
+                accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,video/mp4"
+                onChange={handleFileChange}
+              />
+              {uploading && <span style={styles.uploadStatus}>Uploading…</span>}
+              {!uploading && uploadKey && (
+                <span style={styles.uploadStatus}>✓ {uploadFileName} uploaded</span>
+              )}
+              {uploadError && <span style={styles.error}>{uploadError}</span>}
+            </label>
+          )}
 
           <label style={styles.label}>
             Message (optional)
@@ -408,6 +520,35 @@ const styles = {
     flexDirection: "column",
     gap: 6,
     marginBottom: 16,
+  },
+  sourceToggle: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 16,
+  },
+  sourceBtn: {
+    flex: 1,
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    padding: "9px 12px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  sourceBtnActive: {
+    flex: 1,
+    background: "var(--gradient)",
+    border: "1px solid transparent",
+    color: "#05060e",
+    fontWeight: 700,
+    padding: "9px 12px",
+    borderRadius: 7,
+    fontSize: "0.85rem",
+  },
+  uploadStatus: {
+    fontSize: "0.78rem",
+    color: "var(--cyan)",
   },
   input: {
     background: "var(--panel-raised)",
