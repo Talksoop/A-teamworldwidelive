@@ -296,19 +296,24 @@ export default function Submit() {
           <div style={styles.pulse} aria-hidden="true" />
           <h1 style={styles.doneTitle}>You're in the queue</h1>
           <p style={styles.doneSub}>Keep an eye on the stream — it'll play when it's up.</p>
-          <button
-            style={styles.secondaryBtn}
-            onClick={() => {
-              setState("idle");
-              setName("");
-              setSongName("");
-              setLink("");
-              setMessage("");
-              router.replace("/submit", undefined, { shallow: true });
-            }}
-          >
-            Submit another
-          </button>
+          <div style={styles.doneBtns}>
+            <a style={styles.secondaryBtn} href="/overlay">
+              View live queue
+            </a>
+            <button
+              style={styles.secondaryBtn}
+              onClick={() => {
+                setState("idle");
+                setName("");
+                setSongName("");
+                setLink("");
+                setMessage("");
+                router.replace("/submit", undefined, { shallow: true });
+              }}
+            >
+              Submit another
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -628,8 +633,14 @@ const styles = {
     padding: "10px 20px",
     borderRadius: 8,
     fontSize: "0.9rem",
+    textDecoration: "none",
+    textAlign: "center",
+  },
+  doneBtns: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
     marginTop: 8,
-    alignSelf: "center",
   },
   pulse: {
     width: 40,

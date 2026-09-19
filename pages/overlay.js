@@ -42,6 +42,15 @@ export default function Overlay() {
           {data.playing ? (
             <>
               <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
+              <div className="visualizer" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
               <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
               {data.playing.message && <p style={styles.trackMsg}>“{data.playing.message}”</p>}
               {data.playing.sourceType === "UPLOAD" && data.playing.playUrl && (
