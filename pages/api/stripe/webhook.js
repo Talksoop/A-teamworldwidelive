@@ -34,21 +34,22 @@ export default async function handler(req, res) {
     if (submissionId) {
       const submission = await prisma.submission.findUnique({ where: { id: submissionId } });
       if (submission && submission.status === "PENDING_PAYMENT") {
-        let status = "PENDING";
+        // Paid means paid: skip the manual review step entirely and drop
+        // straight into the queue. A skip offer's priority still determines
+        // how far toward the front it lands; a plain paid entry (or a
+        // react-only purchase) just joins the back of the queue normally.
         let order = 0;
         if (submission.skipOfferId) {
           const skipOffer = await prisma.offer.findUnique({
             where: { id: submission.skipOfferId },
           });
-          // Higher priority = more negative order = sorts closer to the front.
-          status = "QUEUED";
           order = -(skipOffer?.priority || 0);
         }
         await prisma.submission.update({
           where: { id: submissionId },
           data: {
             paid: true,
-            status,
+            status: "QUEUED",
             order,
             amountCents: session.amount_total ?? submission.amountCents,
           },
