@@ -106,6 +106,12 @@ export default function Admin() {
           >
             Pricing &amp; Offers
           </button>
+          <button
+            style={tab === "battles" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("battles")}
+          >
+            Battles
+          </button>
         </div>
         {error && <p style={styles.error}>{error}</p>}
 
@@ -211,8 +217,10 @@ export default function Admin() {
               )}
             </section>
           </>
-        ) : (
+        ) : tab === "pricing" ? (
           <PricingAndOffers />
+        ) : (
+          <Battles submissions={submissions} />
         )}
       </main>
     </>
@@ -552,6 +560,165 @@ function OfferList({
   );
 }
 
+function Battles({ submissions }) {
+  const [battles, setBattles] = useState([]);
+  const [songAId, setSongAId] = useState("");
+  const [songBId, setSongBId] = useState("");
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/battles");
+    if (res.ok) setBattles(await res.json());
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useQueueSocket(load, "battle-updated");
+
+  const candidates = submissions.filter((s) =>
+    ["PENDING", "QUEUED", "PLAYING"].includes(s.status)
+  );
+
+  async function createBattle(e) {
+    e.preventDefault();
+    setError("");
+    const res = await fetch("/api/battles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ songAId, songBId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Couldn't create that battle.");
+      return;
+    }
+    setSongAId("");
+    setSongBId("");
+    load();
+  }
+
+  async function setStatus(id, status) {
+    await fetch(`/api/battles/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    load();
+  }
+
+  async function deleteBattle(id) {
+    await fetch(`/api/battles/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  const live = battles.filter((b) => b.status === "LIVE");
+  const scheduled = battles.filter((b) => b.status === "SCHEDULED");
+  const done = battles.filter((b) => b.status === "DONE");
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>New battle</p>
+        <form style={styles.offerForm} onSubmit={createBattle}>
+          <select
+            style={styles.input}
+            value={songAId}
+            onChange={(e) => setSongAId(e.target.value)}
+            required
+          >
+            <option value="">Song A…</option>
+            {candidates.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.songName || "(untitled)"} — {s.name}
+              </option>
+            ))}
+          </select>
+          <select
+            style={styles.input}
+            value={songBId}
+            onChange={(e) => setSongBId(e.target.value)}
+            required
+          >
+            <option value="">Song B…</option>
+            {candidates.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.songName || "(untitled)"} — {s.name}
+              </option>
+            ))}
+          </select>
+          {error && <p style={styles.error}>{error}</p>}
+          <button style={styles.saveBtn} type="submit">
+            Create battle
+          </button>
+        </form>
+      </section>
+
+      <BattleGroup
+        title="Live"
+        battles={live}
+        onEnd={(id) => setStatus(id, "DONE")}
+        onDelete={deleteBattle}
+      />
+      <BattleGroup
+        title="Scheduled"
+        battles={scheduled}
+        onStart={(id) => setStatus(id, "LIVE")}
+        onDelete={deleteBattle}
+      />
+      <BattleGroup title="Past" battles={done} onDelete={deleteBattle} past />
+    </div>
+  );
+}
+
+function BattleGroup({ title, battles, onStart, onEnd, onDelete, past }) {
+  return (
+    <section style={styles.section}>
+      <p style={styles.sectionLabel}>
+        {title} ({battles.length})
+      </p>
+      {battles.length === 0 ? (
+        <p style={styles.empty}>Nothing here</p>
+      ) : (
+        <ul style={styles.list}>
+          {battles.map((b) => (
+            <li key={b.id} style={styles.row}>
+              <div>
+                <p style={styles.name}>
+                  {b.songA?.songName || "?"} <span style={styles.vsInline}>vs</span>{" "}
+                  {b.songB?.songName || "?"}
+                </p>
+                <p style={styles.submitter}>
+                  {b.votesA} – {b.votesB} votes
+                  {past && b.winnerSide && (
+                    <> · winner: {b.winnerSide === "A" ? b.songA?.songName : b.songB?.songName}</>
+                  )}
+                </p>
+              </div>
+              <div style={styles.rowBtns}>
+                {onStart && (
+                  <button style={styles.playBtn} onClick={() => onStart(b.id)}>
+                    Start
+                  </button>
+                )}
+                {onEnd && (
+                  <button style={styles.doneBtn} onClick={() => onEnd(b.id)}>
+                    End
+                  </button>
+                )}
+                <button style={styles.smallBtnDanger} onClick={() => onDelete(b.id)}>
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 const styles = {
   main: {
     maxWidth: 640,
@@ -685,6 +852,10 @@ const styles = {
     fontSize: "0.78rem",
     color: "var(--text-dim)",
     margin: "0 0 2px",
+  },
+  vsInline: {
+    color: "var(--text-dim)",
+    fontWeight: 500,
   },
   link: {
     fontSize: "0.8rem",

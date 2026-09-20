@@ -4,6 +4,7 @@ import { useQueueSocket } from "../lib/useQueueSocket";
 
 export default function Overlay() {
   const [data, setData] = useState({ playing: null, queue: [] });
+  const [battle, setBattle] = useState(null);
   const [submitUrl, setSubmitUrl] = useState("");
 
   const load = useCallback(async () => {
@@ -16,12 +17,27 @@ export default function Overlay() {
     }
   }, []);
 
+  const loadBattle = useCallback(async () => {
+    try {
+      const res = await fetch("/api/current-battle");
+      const json = await res.json();
+      setBattle(json.battle);
+    } catch {
+      // keep whatever we last had
+    }
+  }, []);
+
   useEffect(() => {
     setSubmitUrl(`${window.location.origin}/submit`);
     load();
-  }, [load]);
+    loadBattle();
+  }, [load, loadBattle]);
 
   useQueueSocket(load);
+  useQueueSocket(loadBattle, "battle-updated");
+
+  const battleTotal = battle ? battle.votesA + battle.votesB : 0;
+  const battlePctA = battleTotal > 0 ? Math.round((battle.votesA / battleTotal) * 100) : 50;
 
   return (
     <>
@@ -29,6 +45,26 @@ export default function Overlay() {
         <title>A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        {battle && (
+          <section style={styles.battleCard}>
+            <div style={styles.liveTag}>
+              <span style={styles.liveDot} aria-hidden="true" />
+              Battle live
+            </div>
+            <div style={styles.battleRow}>
+              <span style={styles.battleName}>{battle.songA?.songName || "Song A"}</span>
+              <span style={styles.battleVotes}>{battle.votesA}</span>
+            </div>
+            <div style={styles.battleBarWrap}>
+              <div style={{ ...styles.battleBar, width: `${battlePctA}%` }} />
+            </div>
+            <div style={styles.battleRow}>
+              <span style={styles.battleName}>{battle.songB?.songName || "Song B"}</span>
+              <span style={styles.battleVotes}>{battle.votesB}</span>
+            </div>
+          </section>
+        )}
+
         <section style={styles.nowPlaying}>
           <div style={styles.liveTag}>
             <span style={styles.liveDot} aria-hidden="true" />
@@ -99,6 +135,40 @@ export default function Overlay() {
 }
 
 const styles = {
+  battleCard: {
+    background: "var(--panel)",
+    border: "1px solid var(--purple)",
+    boxShadow: "var(--glow-purple)",
+    borderRadius: 12,
+    padding: "18px 20px",
+  },
+  battleRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginTop: 8,
+  },
+  battleName: {
+    fontFamily: "var(--font-head)",
+    fontWeight: 700,
+    fontSize: "1rem",
+  },
+  battleVotes: {
+    color: "var(--cyan)",
+    fontWeight: 700,
+    fontSize: "0.9rem",
+  },
+  battleBarWrap: {
+    height: 8,
+    background: "var(--line)",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginTop: 6,
+  },
+  battleBar: {
+    height: "100%",
+    background: "var(--gradient)",
+  },
   main: {
     minHeight: "100vh",
     padding: "32px",

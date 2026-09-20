@@ -1,0 +1,11 @@
+-- CreateTable
+CREATE TABLE "Battle" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "songAId" TEXT NOT NULL,
+    "songBId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'SCHEDULED',
+    "votesA" INTEGER NOT NULL DEFAULT 0,
+    "votesB" INTEGER NOT NULL DEFAULT 0,
+    "winnerSide" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

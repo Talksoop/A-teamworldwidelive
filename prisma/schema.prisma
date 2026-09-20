@@ -37,6 +37,17 @@ model Offer {
   createdAt        DateTime @default(now())
 }
 
+model Battle {
+  id         String   @id @default(cuid())
+  songAId    String
+  songBId    String
+  status     String   @default("SCHEDULED") // SCHEDULED | LIVE | DONE
+  votesA     Int      @default(0)
+  votesB     Int      @default(0)
+  winnerSide String? // "A" | "B" — set when the battle ends
+  createdAt  DateTime @default(now())
+}
+
 model Settings {
   id             String @id @default("singleton")
   submissionMode String @default("FREE") // FREE | PAID
