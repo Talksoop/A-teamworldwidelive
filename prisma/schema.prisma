@@ -49,7 +49,26 @@ model Battle {
 }
 
 model Settings {
-  id             String @id @default("singleton")
-  submissionMode String @default("FREE") // FREE | PAID
-  basePriceCents Int    @default(0)
+  id             String  @id @default("singleton")
+  submissionMode String  @default("FREE") // FREE | PAID
+  basePriceCents Int     @default(0)
+  amaEnabled     Boolean @default(false)
+  amaPriceCents  Int     @default(1000)
+}
+
+model AmaRequest {
+  id                 String    @id @default(cuid())
+  name               String
+  question           String
+  link               String?
+  accessToken        String    @unique
+  status             String    @default("PENDING_PAYMENT") // PENDING_PAYMENT | PENDING | ANSWERED
+  paid               Boolean   @default(false)
+  amountCents        Int       @default(0)
+  stripeSessionId    String?   @unique
+  responseText       String?
+  responseLink       String? // pasted URL, or an S3 key when responseSourceType is UPLOAD
+  responseSourceType String? // LINK | UPLOAD
+  answeredAt         DateTime?
+  createdAt          DateTime  @default(now())
 }

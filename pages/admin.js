@@ -112,6 +112,12 @@ export default function Admin() {
           >
             Battles
           </button>
+          <button
+            style={tab === "ama" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("ama")}
+          >
+            AMA Inbox
+          </button>
         </div>
         {error && <p style={styles.error}>{error}</p>}
 
@@ -219,8 +225,10 @@ export default function Admin() {
           </>
         ) : tab === "pricing" ? (
           <PricingAndOffers />
-        ) : (
+        ) : tab === "battles" ? (
           <Battles submissions={submissions} />
+        ) : (
+          <AmaInbox />
         )}
       </main>
     </>
@@ -716,6 +724,248 @@ function BattleGroup({ title, battles, onStart, onEnd, onDelete, past }) {
         </ul>
       )}
     </section>
+  );
+}
+
+function AmaInbox() {
+  const [settings, setSettings] = useState(null);
+  const [priceInput, setPriceInput] = useState("10.00");
+  const [requests, setRequests] = useState([]);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const [settingsRes, requestsRes] = await Promise.all([
+      fetch("/api/ama-settings"),
+      fetch("/api/ama"),
+    ]);
+    const s = await settingsRes.json();
+    setSettings(s);
+    setPriceInput((s.amaPriceCents / 100).toFixed(2));
+    if (requestsRes.ok) setRequests(await requestsRes.json());
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function toggleEnabled() {
+    await fetch("/api/ama-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amaEnabled: !settings.amaEnabled }),
+    });
+    load();
+  }
+
+  async function savePrice() {
+    const cents = Math.round(parseFloat(priceInput || "0") * 100);
+    if (Number.isNaN(cents) || cents < 0) {
+      setError("Enter a valid price.");
+      return;
+    }
+    await fetch("/api/ama-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amaPriceCents: cents }),
+    });
+    load();
+  }
+
+  const pending = requests.filter((r) => r.status === "PENDING");
+  const answered = requests.filter((r) => r.status === "ANSWERED");
+
+  if (!settings) return null;
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Accepting requests</p>
+        <div style={styles.modeToggle}>
+          <button
+            style={!settings.amaEnabled ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => !settings.amaEnabled || toggleEnabled()}
+          >
+            Off
+          </button>
+          <button
+            style={settings.amaEnabled ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => settings.amaEnabled || toggleEnabled()}
+          >
+            On
+          </button>
+        </div>
+        <div style={styles.priceRow}>
+          <span style={styles.dollarSign}>$</span>
+          <input
+            style={styles.priceInput}
+            type="number"
+            min="0"
+            step="0.01"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+          />
+          <button style={styles.saveBtn} onClick={savePrice}>
+            Save
+          </button>
+        </div>
+        {error && <p style={styles.error}>{error}</p>}
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Pending ({pending.length})</p>
+        {pending.length === 0 ? (
+          <p style={styles.empty}>Nothing waiting on you</p>
+        ) : (
+          pending.map((r) => <AmaCard key={r.id} request={r} onReplied={load} />)
+        )}
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Answered ({answered.length})</p>
+        {answered.length === 0 ? (
+          <p style={styles.empty}>None yet</p>
+        ) : (
+          answered.map((r) => <AmaCard key={r.id} request={r} answered />)
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AmaCard({ request, onReplied, answered }) {
+  const [replying, setReplying] = useState(false);
+  const [responseText, setResponseText] = useState("");
+  const [mode, setMode] = useState("text"); // text | link | upload
+  const [responseLink, setResponseLink] = useState("");
+  const [uploadKey, setUploadKey] = useState("");
+  const [uploadName, setUploadName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      setUploadKey(data.key);
+      setUploadName(file.name);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function submitReply() {
+    setError("");
+    const payload = { responseText: responseText || undefined };
+    if (mode === "link" && responseLink) {
+      payload.responseLink = responseLink;
+      payload.responseSourceType = "LINK";
+    } else if (mode === "upload" && uploadKey) {
+      payload.responseLink = uploadKey;
+      payload.responseSourceType = "UPLOAD";
+    }
+    const res = await fetch(`/api/ama/${request.id}/reply`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Couldn't send that reply.");
+      return;
+    }
+    onReplied();
+  }
+
+  return (
+    <div style={styles.row}>
+      <div style={{ flex: 1 }}>
+        <p style={styles.name}>{request.name}</p>
+        <p style={styles.msg}>{request.question}</p>
+        {request.link && (
+          <a style={styles.link} href={request.link} target="_blank" rel="noreferrer">
+            {request.link}
+          </a>
+        )}
+
+        {answered && (
+          <div style={{ marginTop: 10 }}>
+            <p style={styles.submitter}>Your reply:</p>
+            {request.responseText && <p style={styles.msg}>{request.responseText}</p>}
+            {request.responseLink && (
+              <p style={styles.submitter}>
+                {request.responseSourceType === "UPLOAD" ? "Uploaded file attached" : request.responseLink}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!answered && !replying && (
+          <button style={{ ...styles.playBtn, marginTop: 10 }} onClick={() => setReplying(true)}>
+            Reply
+          </button>
+        )}
+
+        {!answered && replying && (
+          <div style={{ marginTop: 12 }}>
+            <textarea
+              style={{ ...styles.input, width: "100%", height: 80, resize: "vertical" }}
+              placeholder="Write your reply…"
+              value={responseText}
+              onChange={(e) => setResponseText(e.target.value)}
+            />
+            <div style={{ ...styles.formRow, marginTop: 8 }}>
+              <button
+                style={mode === "link" ? styles.modeBtnActive : styles.modeBtn}
+                onClick={() => setMode("link")}
+                type="button"
+              >
+                + Link
+              </button>
+              <button
+                style={mode === "upload" ? styles.modeBtnActive : styles.modeBtn}
+                onClick={() => setMode("upload")}
+                type="button"
+              >
+                + Upload
+              </button>
+            </div>
+            {mode === "link" && (
+              <input
+                style={{ ...styles.input, width: "100%", marginTop: 8 }}
+                placeholder="https://..."
+                value={responseLink}
+                onChange={(e) => setResponseLink(e.target.value)}
+              />
+            )}
+            {mode === "upload" && (
+              <div style={{ marginTop: 8 }}>
+                <input type="file" accept="audio/mpeg,audio/wav,video/mp4" onChange={handleFile} />
+                {uploading && <p style={styles.submitter}>Uploading…</p>}
+                {!uploading && uploadKey && <p style={styles.submitter}>✓ {uploadName} uploaded</p>}
+              </div>
+            )}
+            {error && <p style={styles.error}>{error}</p>}
+            <div style={{ ...styles.formRow, marginTop: 10 }}>
+              <button style={styles.saveBtn} onClick={submitReply}>
+                Send reply
+              </button>
+              <button style={styles.cancelBtn} onClick={() => setReplying(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

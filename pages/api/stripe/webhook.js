@@ -32,6 +32,8 @@ export default async function handler(req, res) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const submissionId = session.metadata?.submissionId;
+    const amaId = session.metadata?.amaId;
+
     if (submissionId) {
       const submission = await prisma.submission.findUnique({ where: { id: submissionId } });
       if (submission && submission.status === "PENDING_PAYMENT") {
@@ -56,6 +58,20 @@ export default async function handler(req, res) {
           },
         });
         broadcastQueueUpdate();
+      }
+    }
+
+    if (amaId) {
+      const request = await prisma.amaRequest.findUnique({ where: { id: amaId } });
+      if (request && request.status === "PENDING_PAYMENT") {
+        await prisma.amaRequest.update({
+          where: { id: amaId },
+          data: {
+            paid: true,
+            status: "PENDING",
+            amountCents: session.amount_total ?? request.amountCents,
+          },
+        });
       }
     }
   }
