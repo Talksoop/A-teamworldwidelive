@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { getStripe } from "../../lib/stripe";
+import { broadcastQueueUpdate } from "../../lib/realtime";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -65,6 +66,7 @@ export default async function handler(req, res) {
     const submission = await prisma.submission.create({
       data: { ...data, status: "PENDING", paid: false },
     });
+    broadcastQueueUpdate();
     return res.status(201).json({ free: true, submission });
   }
 

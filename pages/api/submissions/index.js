@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { isAuthed } from "../../../lib/auth";
 import { attachPlayUrls } from "../../../lib/s3";
+import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -46,6 +47,7 @@ export default async function handler(req, res) {
         status: "PENDING",
       },
     });
+    broadcastQueueUpdate();
     return res.status(201).json(submission);
   }
 

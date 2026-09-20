@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Head from "next/head";
 import { isAuthed } from "../lib/auth";
+import { useQueueSocket } from "../lib/useQueueSocket";
 
 export async function getServerSideProps({ req }) {
   if (!isAuthed(req)) {
@@ -8,8 +9,6 @@ export async function getServerSideProps({ req }) {
   }
   return { props: {} };
 }
-
-const POLL_MS = 4000;
 
 function formatPrice(cents) {
   return `$${(cents / 100).toFixed(2)}`;
@@ -19,6 +18,7 @@ export default function Admin() {
   const [tab, setTab] = useState("queue");
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState("");
+  const [dragId, setDragId] = useState(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/submissions");
@@ -32,9 +32,9 @@ export default function Admin() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
   }, [load]);
+
+  useQueueSocket(load);
 
   async function updateStatus(id, status) {
     setError("");
@@ -53,6 +53,38 @@ export default function Admin() {
   const pending = submissions.filter((s) => s.status === "PENDING");
   const queued = submissions.filter((s) => s.status === "QUEUED");
   const playing = submissions.find((s) => s.status === "PLAYING");
+
+  function handleDrop(targetId) {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      return;
+    }
+    const ids = queued.map((s) => s.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    ids.splice(from, 1);
+    ids.splice(to, 0, dragId);
+    setDragId(null);
+
+    // Optimistic local reorder so it feels instant, then persist.
+    setSubmissions((prev) => {
+      const byId = Object.fromEntries(prev.map((s) => [s.id, s]));
+      const reordered = ids.map((id, index) => ({ ...byId[id], order: index }));
+      const others = prev.filter((s) => s.status !== "QUEUED");
+      return [...others, ...reordered];
+    });
+
+    fetch("/api/submissions/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: ids }),
+    }).then((res) => {
+      if (!res.ok) {
+        setError("Reorder didn't save. Refreshing.");
+        load();
+      }
+    });
+  }
 
   return (
     <>
@@ -102,12 +134,26 @@ export default function Admin() {
 
             <section style={styles.section}>
               <p style={styles.sectionLabel}>Queue ({queued.length})</p>
+              {queued.length > 1 && <p style={styles.dragHint}>Drag ⠿ to reorder</p>}
               {queued.length === 0 ? (
                 <p style={styles.empty}>Queue is empty</p>
               ) : (
                 <ul style={styles.list}>
                   {queued.map((s) => (
-                    <li key={s.id} style={styles.row}>
+                    <li
+                      key={s.id}
+                      style={{
+                        ...styles.row,
+                        ...(dragId === s.id ? styles.rowDragging : {}),
+                      }}
+                      draggable
+                      onDragStart={() => setDragId(s.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => handleDrop(s.id)}
+                    >
+                      <span style={styles.dragHandle} aria-hidden="true">
+                        ⠿
+                      </span>
                       <div>
                         <p style={styles.name}>
                           {s.songName || "(no song name)"}
@@ -589,6 +635,20 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     gap: 12,
+  },
+  rowDragging: {
+    opacity: 0.4,
+  },
+  dragHandle: {
+    color: "var(--text-dim)",
+    cursor: "grab",
+    fontSize: "1.1rem",
+    userSelect: "none",
+  },
+  dragHint: {
+    fontSize: "0.75rem",
+    color: "var(--text-dim)",
+    margin: "-6px 0 10px",
   },
   rowBtns: {
     display: "flex",

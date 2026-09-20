@@ -1,32 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Head from "next/head";
-
-const POLL_MS = 4000;
+import { useQueueSocket } from "../lib/useQueueSocket";
 
 export default function Overlay() {
   const [data, setData] = useState({ playing: null, queue: [] });
   const [submitUrl, setSubmitUrl] = useState("");
 
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/current");
+      const json = await res.json();
+      setData(json);
+    } catch {
+      // Silently retry on the next update — an overlay shouldn't show errors on stream.
+    }
+  }, []);
+
   useEffect(() => {
     setSubmitUrl(`${window.location.origin}/submit`);
+    load();
+  }, [load]);
 
-    let cancelled = false;
-    async function poll() {
-      try {
-        const res = await fetch("/api/current");
-        const json = await res.json();
-        if (!cancelled) setData(json);
-      } catch {
-        // Silently retry on the next tick — an overlay shouldn't show errors on stream.
-      }
-    }
-    poll();
-    const id = setInterval(poll, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+  useQueueSocket(load);
 
   return (
     <>

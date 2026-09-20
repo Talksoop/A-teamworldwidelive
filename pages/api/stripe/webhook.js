@@ -1,6 +1,7 @@
 import { buffer } from "micro";
 import { prisma } from "../../../lib/prisma";
 import { getStripe } from "../../../lib/stripe";
+import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 export const config = {
   api: { bodyParser: false },
@@ -54,6 +55,7 @@ export default async function handler(req, res) {
             amountCents: session.amount_total ?? submission.amountCents,
           },
         });
+        broadcastQueueUpdate();
       }
     }
   }

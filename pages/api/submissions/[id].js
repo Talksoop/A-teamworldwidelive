@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { isAuthed } from "../../../lib/auth";
+import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 const VALID_STATUSES = ["PENDING", "QUEUED", "PLAYING", "DONE", "REJECTED"];
 
@@ -32,11 +33,13 @@ export default async function handler(req, res) {
         ...(typeof order === "number" ? { order } : {}),
       },
     });
+    broadcastQueueUpdate();
     return res.status(200).json(updated);
   }
 
   if (req.method === "DELETE") {
     await prisma.submission.delete({ where: { id } });
+    broadcastQueueUpdate();
     return res.status(204).end();
   }
 

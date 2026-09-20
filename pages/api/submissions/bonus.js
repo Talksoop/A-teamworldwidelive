@@ -1,4 +1,5 @@
 import { prisma } from "../../../lib/prisma";
+import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -55,5 +56,6 @@ export default async function handler(req, res) {
     },
   });
 
+  broadcastQueueUpdate();
   return res.status(201).json(bonus);
 }
