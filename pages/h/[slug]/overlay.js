@@ -279,7 +279,8 @@ const styles = {
   },
   nowPlaying: {
     background: "var(--panel)",
-    border: "1px solid var(--line)",
+    border: "1px solid var(--line-soft)",
+    boxShadow: "var(--shadow-md)",
     borderRadius: 12,
     padding: "20px 22px",
   },

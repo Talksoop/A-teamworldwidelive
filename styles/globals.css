@@ -4,7 +4,9 @@
   --bg: #05060e;
   --panel: #0c0f1e;
   --panel-raised: #141830;
+  --panel-hover: #191f3c;
   --line: #262c50;
+  --line-soft: #1a1f3d;
   --text: #eef1fb;
   --text-dim: #8f96bf;
   --cyan: #4fd8f5;
@@ -13,6 +15,14 @@
   --gradient: linear-gradient(135deg, var(--cyan), var(--purple));
   --glow-cyan: 0 0 12px rgba(79, 216, 245, 0.55);
   --glow-purple: 0 0 16px rgba(155, 107, 255, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  --shadow-lift: 0 12px 32px rgba(79, 216, 245, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --transition: 160ms var(--ease);
   --font-head: "Orbitron", sans-serif;
   --font-body: "Rajdhani", sans-serif;
 }
@@ -31,6 +41,18 @@ body {
   font-size: 17px;
 }
 
+body {
+  background-image: radial-gradient(
+      520px 320px at 12% -8%,
+      rgba(79, 216, 245, 0.09),
+      transparent 60%
+    ),
+    radial-gradient(480px 300px at 108% 8%, rgba(155, 107, 255, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
 a {
   color: inherit;
 }
@@ -38,16 +60,49 @@ a {
 button {
   font-family: var(--font-body);
   cursor: pointer;
+  transition: transform var(--transition), opacity var(--transition), box-shadow var(--transition),
+    background var(--transition), border-color var(--transition);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+a {
+  transition: opacity var(--transition), color var(--transition);
 }
 
 input,
-textarea {
+textarea,
+select {
   font-family: var(--font-body);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 3px rgba(79, 216, 245, 0.15);
 }
 
 ::selection {
   background: var(--purple);
   color: #05060e;
+}
+
+button:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+a:hover {
+  opacity: 0.85;
 }
 
 @keyframes viz-bounce {
