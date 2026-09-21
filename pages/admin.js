@@ -157,7 +157,7 @@ export default function Admin() {
                 <div style={styles.playingCard}>
                   <div>
                     <p style={styles.name}>{playing.songName || "(no song name)"}</p>
-                    <p style={styles.submitter}>{playing.name}</p>
+                    <p style={styles.submitter}>{playing.name}{playing.email && ` · ${playing.email}`}</p>
                     <a style={styles.link} href={playing.playUrl || playing.link} target="_blank" rel="noreferrer">
                       {playing.sourceType !== "UPLOAD" && <PlatformBadge link={playing.link} />}
                       {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
@@ -201,7 +201,7 @@ export default function Admin() {
                           {s.paid && <span style={styles.paidTag}>PAID</span>}
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
-                        <p style={styles.submitter}>{s.name}</p>
+                        <p style={styles.submitter}>{s.name}{s.email && ` · ${s.email}`}</p>
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
                           {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
@@ -230,7 +230,7 @@ export default function Admin() {
                           {s.paid && <span style={styles.paidTag}>PAID</span>}
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
-                        <p style={styles.submitter}>{s.name}</p>
+                        <p style={styles.submitter}>{s.name}{s.email && ` · ${s.email}`}</p>
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
                           {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}

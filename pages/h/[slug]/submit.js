@@ -10,6 +10,7 @@ export default function Submit() {
   const router = useRouter();
   const { slug } = router.query;
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [songName, setSongName] = useState("");
   const [link, setLink] = useState("");
   const [message, setMessage] = useState("");
@@ -123,6 +124,7 @@ export default function Submit() {
         body: JSON.stringify({
           slug,
           name,
+          email: email || undefined,
           songName,
           link: sourceMode === "upload" ? uploadKey : link,
           sourceType: sourceMode === "upload" ? "UPLOAD" : "LINK",
@@ -138,6 +140,7 @@ export default function Submit() {
       if (data.free) {
         setState("done");
         setName("");
+        setEmail("");
         setSongName("");
         setLink("");
         setMessage("");
@@ -169,6 +172,7 @@ export default function Submit() {
         body: JSON.stringify({
           parentId,
           name,
+          email: email || undefined,
           songName,
           link: sourceMode === "upload" ? uploadKey : link,
           sourceType: sourceMode === "upload" ? "UPLOAD" : "LINK",
@@ -215,6 +219,17 @@ export default function Submit() {
               maxLength={60}
               required
               placeholder="e.g. Jordan"
+            />
+          </label>
+          <label style={styles.label}>
+            Email (optional — get notified when it plays)
+            <input
+              style={styles.input}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={200}
+              placeholder="you@example.com"
             />
           </label>
           <label style={styles.label}>
@@ -308,6 +323,7 @@ export default function Submit() {
               onClick={() => {
                 setState("idle");
                 setName("");
+        setEmail("");
                 setSongName("");
                 setLink("");
                 setMessage("");
@@ -345,6 +361,17 @@ export default function Submit() {
               maxLength={60}
               required
               placeholder="e.g. Jordan"
+            />
+          </label>
+          <label style={styles.label}>
+            Email (optional — get notified when it plays)
+            <input
+              style={styles.input}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={200}
+              placeholder="you@example.com"
             />
           </label>
 

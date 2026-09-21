@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 import { rateLimited } from "../../../lib/rateLimit";
+import { notifyHostNewSubmission } from "../../../lib/notifications";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
   }
   if (rateLimited(req, res, "bonus", { windowMs: 10 * 60 * 1000, max: 15 })) return;
 
-  const { parentId, name, songName, link, message, sourceType } = req.body || {};
+  const { parentId, name, email, songName, link, message, sourceType } = req.body || {};
   const isUpload = sourceType === "UPLOAD";
 
   if (!parentId || !name || !link || !songName) {
@@ -46,6 +47,7 @@ export default async function handler(req, res) {
     data: {
       hostId: parent.hostId,
       name: name.trim(),
+      email: email ? email.trim() : null,
       songName: songName.trim(),
       message: message ? message.trim() : null,
       link: link.trim(),
@@ -60,5 +62,7 @@ export default async function handler(req, res) {
   });
 
   broadcastQueueUpdate(parent.hostId);
+  const host = await prisma.host.findUnique({ where: { id: parent.hostId } });
+  if (host) notifyHostNewSubmission(host, bonus);
   return res.status(201).json(bonus);
 }

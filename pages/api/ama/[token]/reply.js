@@ -1,5 +1,6 @@
 import { prisma } from "../../../../lib/prisma";
 import { getSessionHostId } from "../../../../lib/auth";
+import { notifyFanAmaAnswered } from "../../../../lib/notifications";
 
 export default async function handler(req, res) {
   const hostId = getSessionHostId(req);
@@ -34,5 +35,6 @@ export default async function handler(req, res) {
     },
   });
 
+  notifyFanAmaAnswered(updated);
   return res.status(200).json(updated);
 }

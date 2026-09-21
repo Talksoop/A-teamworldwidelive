@@ -4,6 +4,7 @@ import { getStripe } from "../../lib/stripe";
 import { getSessionHostId } from "../../lib/auth";
 import { getHostBySlug } from "../../lib/host";
 import { rateLimited } from "../../lib/rateLimit";
+import { notifyHostNewAma } from "../../lib/notifications";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     if (rateLimited(req, res, "ama", { windowMs: 60 * 60 * 1000, max: 8 })) return;
-    const { slug, name, question, link } = req.body || {};
+    const { slug, name, email, question, link } = req.body || {};
     if (!name || !question) {
       return res.status(400).json({ error: "Name and question are required." });
     }
@@ -46,10 +47,11 @@ export default async function handler(req, res) {
     const priceCents = settings.amaPriceCents;
 
     if (priceCents === 0) {
-      await prisma.amaRequest.create({
+      const created = await prisma.amaRequest.create({
         data: {
           hostId: host.id,
           name: name.trim(),
+          email: email ? email.trim() : null,
           question: question.trim(),
           link: link ? link.trim() : null,
           accessToken,
@@ -57,6 +59,7 @@ export default async function handler(req, res) {
           paid: false,
         },
       });
+      notifyHostNewAma(host, created);
       return res.status(201).json({ free: true, token: accessToken });
     }
 
@@ -68,6 +71,7 @@ export default async function handler(req, res) {
       data: {
         hostId: host.id,
         name: name.trim(),
+        email: email ? email.trim() : null,
         question: question.trim(),
         link: link ? link.trim() : null,
         accessToken,

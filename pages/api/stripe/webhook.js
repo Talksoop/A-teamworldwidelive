@@ -2,6 +2,7 @@ import { buffer } from "micro";
 import { prisma } from "../../../lib/prisma";
 import { getStripe } from "../../../lib/stripe";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
+import { notifyHostNewSubmission, notifyHostNewAma, notifyHostPayout } from "../../../lib/notifications";
 
 export const config = {
   api: { bodyParser: false },
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
           });
           order = -(skipOffer?.priority || 0);
         }
-        await prisma.submission.update({
+        const updated = await prisma.submission.update({
           where: { id: submissionId },
           data: {
             paid: true,
@@ -58,13 +59,15 @@ export default async function handler(req, res) {
           },
         });
         broadcastQueueUpdate(submission.hostId);
+        const host = await prisma.host.findUnique({ where: { id: submission.hostId } });
+        if (host) notifyHostNewSubmission(host, updated);
       }
     }
 
     if (amaId) {
       const request = await prisma.amaRequest.findUnique({ where: { id: amaId } });
       if (request && request.status === "PENDING_PAYMENT") {
-        await prisma.amaRequest.update({
+        const updated = await prisma.amaRequest.update({
           where: { id: amaId },
           data: {
             paid: true,
@@ -72,6 +75,20 @@ export default async function handler(req, res) {
             amountCents: session.amount_total ?? request.amountCents,
           },
         });
+        const host = await prisma.host.findUnique({ where: { id: request.hostId } });
+        if (host) notifyHostNewAma(host, updated);
+      }
+    }
+  }
+
+  // Connect payouts: fires on a connected account's payout, with `account`
+  // identifying which connected account it belongs to.
+  if (event.type === "payout.paid") {
+    const accountId = event.account;
+    if (accountId) {
+      const host = await prisma.host.findFirst({ where: { stripeAccountId: accountId } });
+      if (host) {
+        notifyHostPayout(host, event.data.object.amount);
       }
     }
   }

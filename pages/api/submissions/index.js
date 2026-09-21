@@ -4,6 +4,7 @@ import { getHostBySlug } from "../../../lib/host";
 import { attachPlayUrls } from "../../../lib/s3";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 import { rateLimited } from "../../../lib/rateLimit";
+import { notifyHostNewSubmission } from "../../../lib/notifications";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     if (rateLimited(req, res, "submit", { windowMs: 10 * 60 * 1000, max: 15 })) return;
     // Public submission endpoint — the fan's page is at /h/[slug]/submit.
-    const { slug, name, songName, message, link, sourceType } = req.body || {};
+    const { slug, name, email, songName, message, link, sourceType } = req.body || {};
     const isUpload = sourceType === "UPLOAD";
 
     const host = await getHostBySlug(slug);
@@ -42,7 +43,8 @@ export default async function handler(req, res) {
       name.length > 60 ||
       songName.length > 100 ||
       (message && message.length > 300) ||
-      link.length > 500
+      link.length > 500 ||
+      (email && email.length > 200)
     ) {
       return res.status(400).json({ error: "One of the fields is too long." });
     }
@@ -51,6 +53,7 @@ export default async function handler(req, res) {
       data: {
         hostId: host.id,
         name: name.trim(),
+        email: email ? email.trim() : null,
         songName: songName.trim(),
         message: message ? message.trim() : null,
         link: link.trim(),
@@ -59,6 +62,7 @@ export default async function handler(req, res) {
       },
     });
     broadcastQueueUpdate(host.id);
+    notifyHostNewSubmission(host, submission);
     return res.status(201).json(submission);
   }
 

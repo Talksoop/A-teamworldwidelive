@@ -24,6 +24,7 @@ model Submission {
   id                 String   @id @default(cuid())
   hostId             String
   name               String
+  email              String?
   songName           String?
   message            String?
   link               String // pasted URL, or the S3 object key when sourceType is UPLOAD
@@ -77,6 +78,7 @@ model AmaRequest {
   id                 String    @id @default(cuid())
   hostId             String
   name               String
+  email              String?
   question           String
   link               String?
   accessToken        String    @unique

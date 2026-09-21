@@ -11,6 +11,7 @@ export default function Ama() {
   const { slug } = router.query;
   const [settings, setSettings] = useState(null);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [question, setQuestion] = useState("");
   const [link, setLink] = useState("");
   const [state, setState] = useState("idle"); // idle | sending | error
@@ -34,7 +35,7 @@ export default function Ama() {
       const res = await fetch("/api/ama", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, name, question, link }),
+        body: JSON.stringify({ slug, name, email: email || undefined, question, link }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't send that. Try again.");
@@ -85,6 +86,18 @@ export default function Ama() {
               maxLength={60}
               required
               placeholder="e.g. Jordan"
+            />
+          </label>
+
+          <label style={styles.label}>
+            Email (optional — get notified when you get a reply)
+            <input
+              style={styles.input}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={200}
+              placeholder="you@example.com"
             />
           </label>
 

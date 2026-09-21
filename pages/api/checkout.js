@@ -3,6 +3,7 @@ import { getStripe } from "../../lib/stripe";
 import { getHostBySlug } from "../../lib/host";
 import { broadcastQueueUpdate } from "../../lib/realtime";
 import { rateLimited } from "../../lib/rateLimit";
+import { notifyHostNewSubmission } from "../../lib/notifications";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   }
   if (rateLimited(req, res, "checkout", { windowMs: 10 * 60 * 1000, max: 15 })) return;
 
-  const { slug, name, songName, link, message, sourceType, skipOfferId, reactOfferId } =
+  const { slug, name, email, songName, link, message, sourceType, skipOfferId, reactOfferId } =
     req.body || {};
   const isUpload = sourceType === "UPLOAD";
 
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
   const data = {
     hostId: host.id,
     name: name.trim(),
+    email: email ? email.trim() : null,
     songName: songName.trim(),
     message: message ? message.trim() : null,
     link: link.trim(),
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
       data: { ...data, status: "PENDING", paid: false },
     });
     broadcastQueueUpdate(host.id);
+    notifyHostNewSubmission(host, submission);
     return res.status(201).json({ free: true, submission });
   }
 

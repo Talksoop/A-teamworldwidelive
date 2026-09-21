@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { getSessionHostId } from "../../../lib/auth";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
+import { notifyFanSongPlaying } from "../../../lib/notifications";
 
 const VALID_STATUSES = ["PENDING", "QUEUED", "PLAYING", "DONE", "REJECTED"];
 
@@ -39,6 +40,7 @@ export default async function handler(req, res) {
       },
     });
     broadcastQueueUpdate(hostId);
+    if (status === "PLAYING") notifyFanSongPlaying(updated);
     return res.status(200).json(updated);
   }
 
