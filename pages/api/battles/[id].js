@@ -1,15 +1,20 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
 import { broadcastBattleUpdate } from "../../../lib/realtime";
 
 const VALID_STATUSES = ["SCHEDULED", "LIVE", "DONE"];
 
 export default async function handler(req, res) {
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
   }
 
   const { id } = req.query;
+  const existing = await prisma.battle.findUnique({ where: { id } });
+  if (!existing || existing.hostId !== hostId) {
+    return res.status(404).json({ error: "Not found." });
+  }
 
   if (req.method === "PATCH") {
     const { status, winnerSide } = req.body || {};
@@ -20,10 +25,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "winnerSide must be A or B." });
     }
 
-    // Only one battle may be LIVE at a time.
+    // Only one battle may be LIVE at a time, per host.
     if (status === "LIVE") {
       await prisma.battle.updateMany({
-        where: { status: "LIVE" },
+        where: { hostId, status: "LIVE" },
         data: { status: "DONE" },
       });
     }
@@ -34,21 +39,18 @@ export default async function handler(req, res) {
 
     // Ending the battle without an explicit winner: call it by the votes.
     if (status === "DONE" && !winnerSide) {
-      const current = await prisma.battle.findUnique({ where: { id } });
-      if (current) {
-        data.winnerSide =
-          current.votesA === current.votesB ? null : current.votesA > current.votesB ? "A" : "B";
-      }
+      data.winnerSide =
+        existing.votesA === existing.votesB ? null : existing.votesA > existing.votesB ? "A" : "B";
     }
 
     const updated = await prisma.battle.update({ where: { id }, data });
-    broadcastBattleUpdate();
+    broadcastBattleUpdate(hostId);
     return res.status(200).json(updated);
   }
 
   if (req.method === "DELETE") {
     await prisma.battle.delete({ where: { id } });
-    broadcastBattleUpdate();
+    broadcastBattleUpdate(hostId);
     return res.status(204).end();
   }
 

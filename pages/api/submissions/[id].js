@@ -1,14 +1,19 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 const VALID_STATUSES = ["PENDING", "QUEUED", "PLAYING", "DONE", "REJECTED"];
 
 export default async function handler(req, res) {
-  const { id } = req.query;
-
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
+  }
+
+  const { id } = req.query;
+  const existing = await prisma.submission.findUnique({ where: { id } });
+  if (!existing || existing.hostId !== hostId) {
+    return res.status(404).json({ error: "Not found." });
   }
 
   if (req.method === "PATCH") {
@@ -17,11 +22,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid status." });
     }
 
-    // Only one submission may be PLAYING at a time: demote any current
-    // "now playing" track to DONE before promoting the new one.
+    // Only one submission may be PLAYING at a time (per host): demote any
+    // current "now playing" track to DONE before promoting the new one.
     if (status === "PLAYING") {
       await prisma.submission.updateMany({
-        where: { status: "PLAYING" },
+        where: { hostId, status: "PLAYING" },
         data: { status: "DONE" },
       });
     }
@@ -33,13 +38,13 @@ export default async function handler(req, res) {
         ...(typeof order === "number" ? { order } : {}),
       },
     });
-    broadcastQueueUpdate();
+    broadcastQueueUpdate(hostId);
     return res.status(200).json(updated);
   }
 
   if (req.method === "DELETE") {
     await prisma.submission.delete({ where: { id } });
-    broadcastQueueUpdate();
+    broadcastQueueUpdate(hostId);
     return res.status(204).end();
   }
 

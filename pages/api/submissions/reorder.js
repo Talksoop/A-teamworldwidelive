@@ -1,9 +1,10 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 export default async function handler(req, res) {
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
   }
   if (req.method !== "POST") {
@@ -16,12 +17,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "order must be an array of submission ids." });
   }
 
+  // Verify every id actually belongs to this host before touching anything.
+  const owned = await prisma.submission.findMany({
+    where: { id: { in: order }, hostId },
+    select: { id: true },
+  });
+  if (owned.length !== order.length) {
+    return res.status(403).json({ error: "One or more of those songs isn't yours." });
+  }
+
   await prisma.$transaction(
     order.map((id, index) =>
       prisma.submission.update({ where: { id }, data: { order: index } })
     )
   );
 
-  broadcastQueueUpdate();
+  broadcastQueueUpdate(hostId);
   return res.status(200).json({ ok: true });
 }

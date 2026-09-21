@@ -57,7 +57,7 @@ export default async function handler(req, res) {
             amountCents: session.amount_total ?? submission.amountCents,
           },
         });
-        broadcastQueueUpdate();
+        broadcastQueueUpdate(submission.hostId);
       }
     }
 

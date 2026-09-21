@@ -1,12 +1,21 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
+
+async function assertOwnership(id, hostId) {
+  const offer = await prisma.offer.findUnique({ where: { id } });
+  return offer && offer.hostId === hostId;
+}
 
 export default async function handler(req, res) {
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
   }
 
   const { id } = req.query;
+  if (!(await assertOwnership(id, hostId))) {
+    return res.status(404).json({ error: "Not found." });
+  }
 
   if (req.method === "PATCH") {
     const { name, description, priceCents, priority, bonusSubmissions, active } = req.body || {};

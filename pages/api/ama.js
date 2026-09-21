@@ -1,22 +1,24 @@
 import crypto from "crypto";
 import { prisma } from "../../lib/prisma";
 import { getStripe } from "../../lib/stripe";
-import { isAuthed } from "../../lib/auth";
+import { getSessionHostId } from "../../lib/auth";
+import { getHostBySlug } from "../../lib/host";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    if (!isAuthed(req)) {
+    const hostId = getSessionHostId(req);
+    if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
     const requests = await prisma.amaRequest.findMany({
-      where: { status: { in: ["PENDING", "ANSWERED"] } },
+      where: { hostId, status: { in: ["PENDING", "ANSWERED"] } },
       orderBy: { createdAt: "desc" },
     });
     return res.status(200).json(requests);
   }
 
   if (req.method === "POST") {
-    const { name, question, link } = req.body || {};
+    const { slug, name, question, link } = req.body || {};
     if (!name || !question) {
       return res.status(400).json({ error: "Name and question are required." });
     }
@@ -24,10 +26,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "One of the fields is too long." });
     }
 
+    const host = await getHostBySlug(slug);
+    if (!host) {
+      return res.status(404).json({ error: "Channel not found." });
+    }
+
     const settings = await prisma.settings.upsert({
-      where: { id: "singleton" },
+      where: { hostId: host.id },
       update: {},
-      create: { id: "singleton" },
+      create: { hostId: host.id },
     });
     if (!settings.amaEnabled) {
       return res.status(400).json({ error: "AMA requests aren't open right now." });
@@ -39,6 +46,7 @@ export default async function handler(req, res) {
     if (priceCents === 0) {
       await prisma.amaRequest.create({
         data: {
+          hostId: host.id,
           name: name.trim(),
           question: question.trim(),
           link: link ? link.trim() : null,
@@ -50,8 +58,13 @@ export default async function handler(req, res) {
       return res.status(201).json({ free: true, token: accessToken });
     }
 
+    if (!host.isFounder && !host.stripeOnboarded) {
+      return res.status(400).json({ error: "This channel hasn't set up payments yet." });
+    }
+
     const request = await prisma.amaRequest.create({
       data: {
+        hostId: host.id,
         name: name.trim(),
         question: question.trim(),
         link: link ? link.trim() : null,
@@ -63,6 +76,13 @@ export default async function handler(req, res) {
     });
 
     const origin = req.headers.origin || `https://${req.headers.host}`;
+    const paymentIntentData = host.isFounder
+      ? undefined
+      : {
+          application_fee_amount: Math.round((priceCents * host.platformFeeBps) / 10000),
+          transfer_data: { destination: host.stripeAccountId },
+        };
+
     try {
       const stripe = getStripe();
       const session = await stripe.checkout.sessions.create({
@@ -77,9 +97,10 @@ export default async function handler(req, res) {
             quantity: 1,
           },
         ],
-        success_url: `${origin}/ama/${accessToken}?paid=1`,
-        cancel_url: `${origin}/ama?canceled=1`,
-        metadata: { amaId: request.id },
+        payment_intent_data: paymentIntentData,
+        success_url: `${origin}/h/${host.slug}/ama/${accessToken}?paid=1`,
+        cancel_url: `${origin}/h/${host.slug}/ama?canceled=1`,
+        metadata: { amaId: request.id, hostId: host.id },
       });
       await prisma.amaRequest.update({
         where: { id: request.id },

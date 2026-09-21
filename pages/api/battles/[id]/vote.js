@@ -23,6 +23,6 @@ export default async function handler(req, res) {
     data: side === "A" ? { votesA: { increment: 1 } } : { votesB: { increment: 1 } },
   });
 
-  broadcastBattleUpdate();
+  broadcastBattleUpdate(battle.hostId);
   return res.status(200).json(updated);
 }

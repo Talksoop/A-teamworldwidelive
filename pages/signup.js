@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 
-export default function Login() {
+export default function Signup() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,15 +14,15 @@ export default function Login() {
     e.preventDefault();
     setSending(true);
     setError("");
-    const res = await fetch("/api/login", {
+    const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, email, password }),
     });
     const data = await res.json().catch(() => ({}));
     setSending(false);
     if (!res.ok) {
-      setError(data.error || "Wrong email or password.");
+      setError(data.error || "Couldn't create that account.");
       return;
     }
     router.push("/admin");
@@ -30,32 +31,41 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Log in — A-Team Worldwide Live</title>
+        <title>Create your host account — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
         <form style={styles.card} onSubmit={handleSubmit}>
-          <h1 style={styles.title}>Host login</h1>
+          <h1 style={styles.title}>Set up your channel</h1>
+          <p style={styles.sub}>Your own submit page, queue, overlay, and pricing.</p>
+          <input
+            style={styles.input}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Channel / brand name"
+            required
+          />
           <input
             style={styles.input}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            autoFocus
+            required
           />
           <input
             style={styles.input}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder="Password (min 8 characters)"
+            required
           />
           {error && <p style={styles.error}>{error}</p>}
           <button style={styles.btn} type="submit" disabled={sending}>
-            {sending ? "Checking…" : "Log in"}
+            {sending ? "Creating…" : "Create account"}
           </button>
-          <a style={styles.link} href="/signup">
-            New here? Create an account
+          <a style={styles.link} href="/login">
+            Already have an account? Log in
           </a>
         </form>
       </main>
@@ -73,7 +83,7 @@ const styles = {
   },
   card: {
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 360,
     display: "flex",
     flexDirection: "column",
     gap: 14,
@@ -86,8 +96,14 @@ const styles = {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
     fontSize: "1.4rem",
-    margin: "0 0 6px",
+    margin: "0 0 2px",
     textAlign: "center",
+  },
+  sub: {
+    color: "var(--text-dim)",
+    fontSize: "0.85rem",
+    textAlign: "center",
+    margin: "0 0 8px",
   },
   input: {
     background: "var(--panel-raised)",

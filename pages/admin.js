@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import Head from "next/head";
-import { isAuthed } from "../lib/auth";
+import { getSessionHostId } from "../lib/auth";
 import { useQueueSocket } from "../lib/useQueueSocket";
 
 export async function getServerSideProps({ req }) {
-  if (!isAuthed(req)) {
+  if (!getSessionHostId(req)) {
     return { redirect: { destination: "/login", permanent: false } };
   }
   return { props: {} };
@@ -19,6 +19,13 @@ export default function Admin() {
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState("");
   const [dragId, setDragId] = useState(null);
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setMe);
+  }, []);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/submissions");
@@ -34,7 +41,7 @@ export default function Admin() {
     load();
   }, [load]);
 
-  useQueueSocket(load);
+  useQueueSocket(me?.id, load);
 
   async function updateStatus(id, status) {
     setError("");
@@ -117,6 +124,12 @@ export default function Admin() {
             onClick={() => setTab("ama")}
           >
             AMA Inbox
+          </button>
+          <button
+            style={tab === "channel" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("channel")}
+          >
+            Channel
           </button>
         </div>
         {error && <p style={styles.error}>{error}</p>}
@@ -226,9 +239,11 @@ export default function Admin() {
         ) : tab === "pricing" ? (
           <PricingAndOffers />
         ) : tab === "battles" ? (
-          <Battles submissions={submissions} />
-        ) : (
+          <Battles submissions={submissions} hostId={me?.id} />
+        ) : tab === "ama" ? (
           <AmaInbox />
+        ) : (
+          <Channel me={me} />
         )}
       </main>
     </>
@@ -568,7 +583,7 @@ function OfferList({
   );
 }
 
-function Battles({ submissions }) {
+function Battles({ submissions, hostId }) {
   const [battles, setBattles] = useState([]);
   const [songAId, setSongAId] = useState("");
   const [songBId, setSongBId] = useState("");
@@ -583,7 +598,7 @@ function Battles({ submissions }) {
     load();
   }, [load]);
 
-  useQueueSocket(load, "battle-updated");
+  useQueueSocket(hostId, load, "battle-updated");
 
   const candidates = submissions.filter((s) =>
     ["PENDING", "QUEUED", "PLAYING"].includes(s.status)
@@ -969,7 +984,100 @@ function AmaCard({ request, onReplied, answered }) {
   );
 }
 
+function Channel({ me }) {
+  const [connecting, setConnecting] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stripe_return") && !checked) {
+      setChecked(true);
+      fetch("/api/stripe/connect-status", { method: "POST" });
+    }
+  }, [checked]);
+
+  async function connectStripe() {
+    setConnecting(true);
+    const res = await fetch("/api/stripe/connect", { method: "POST" });
+    const data = await res.json();
+    setConnecting(false);
+    if (data.url) window.location.href = data.url;
+  }
+
+  async function logout() {
+    await fetch("/api/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  if (!me) return null;
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Your public pages</p>
+        <div style={styles.linkList}>
+          <a style={styles.linkRow} href={`/h/${me.slug}/submit`} target="_blank" rel="noreferrer">
+            {origin}/h/{me.slug}/submit
+          </a>
+          <a style={styles.linkRow} href={`/h/${me.slug}/overlay`} target="_blank" rel="noreferrer">
+            {origin}/h/{me.slug}/overlay
+          </a>
+          <a style={styles.linkRow} href={`/h/${me.slug}/vote`} target="_blank" rel="noreferrer">
+            {origin}/h/{me.slug}/vote
+          </a>
+          <a style={styles.linkRow} href={`/h/${me.slug}/ama`} target="_blank" rel="noreferrer">
+            {origin}/h/{me.slug}/ama
+          </a>
+        </div>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Payments</p>
+        {me.isFounder ? (
+          <p style={styles.empty}>
+            You're the platform owner — payments go straight to your own Stripe account, no setup needed.
+          </p>
+        ) : me.stripeOnboarded ? (
+          <p style={styles.empty}>
+            ✓ Stripe connected. The platform takes {(me.platformFeeBps / 100).toFixed(0)}% per paid
+            transaction; the rest is paid out to you automatically by Stripe.
+          </p>
+        ) : (
+          <>
+            <p style={styles.empty}>
+              Connect Stripe to accept paid submissions, skip tiers, and AMA requests. Platform fee:{" "}
+              {(me.platformFeeBps / 100).toFixed(0)}%.
+            </p>
+            <button style={styles.saveBtn} onClick={connectStripe} disabled={connecting}>
+              {connecting ? "Redirecting…" : "Connect Stripe"}
+            </button>
+          </>
+        )}
+      </section>
+
+      <section style={styles.section}>
+        <button style={styles.cancelBtn} onClick={logout}>
+          Log out
+        </button>
+      </section>
+    </div>
+  );
+}
+
 const styles = {
+  linkList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  linkRow: {
+    fontSize: "0.85rem",
+    color: "var(--cyan)",
+    wordBreak: "break-all",
+  },
   main: {
     maxWidth: 640,
     margin: "0 auto",

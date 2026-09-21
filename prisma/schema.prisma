@@ -7,8 +7,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Host {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String // brand/display name shown on their public pages
+  slug            String   @unique // used in URLs: /h/[slug]/...
+  platformFeeBps  Int      @default(2000) // platform cut in basis points (2000 = 20%)
+  stripeAccountId String? // Stripe Connect account id once they start onboarding
+  stripeOnboarded Boolean  @default(false) // true once Connect reports charges_enabled
+  isFounder       Boolean  @default(false) // the original single-tenant owner: charges go directly to the platform account, no Connect/fee needed
+  createdAt       DateTime @default(now())
+}
+
 model Submission {
   id                 String   @id @default(cuid())
+  hostId             String
   name               String
   songName           String?
   message            String?
@@ -27,6 +41,7 @@ model Submission {
 
 model Offer {
   id               String   @id @default(cuid())
+  hostId           String
   type             String // SKIP | REACT
   name             String
   description      String?
@@ -39,6 +54,7 @@ model Offer {
 
 model Battle {
   id         String   @id @default(cuid())
+  hostId     String
   songAId    String
   songBId    String
   status     String   @default("SCHEDULED") // SCHEDULED | LIVE | DONE
@@ -49,7 +65,8 @@ model Battle {
 }
 
 model Settings {
-  id             String  @id @default("singleton")
+  id             String  @id @default(cuid())
+  hostId         String  @unique
   submissionMode String  @default("FREE") // FREE | PAID
   basePriceCents Int     @default(0)
   amaEnabled     Boolean @default(false)
@@ -58,6 +75,7 @@ model Settings {
 
 model AmaRequest {
   id                 String    @id @default(cuid())
+  hostId             String
   name               String
   question           String
   link               String?

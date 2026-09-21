@@ -1,31 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/router";
 import Head from "next/head";
-import { useQueueSocket } from "../lib/useQueueSocket";
+import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 export default function Vote() {
+  const router = useRouter();
+  const { slug } = router.query;
+  const [hostId, setHostId] = useState(null);
   const [battle, setBattle] = useState(undefined); // undefined = loading, null = none live
   const [votedFor, setVotedFor] = useState(null);
   const [voting, setVoting] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    if (!slug) return;
     try {
-      const res = await fetch("/api/current-battle");
+      const res = await fetch(`/api/current-battle?slug=${slug}`);
       const data = await res.json();
       setBattle(data.battle);
+      if (data.hostId) setHostId(data.hostId);
       if (data.battle) {
         setVotedFor(localStorage.getItem(`voted-battle-${data.battle.id}`));
       }
     } catch {
       // keep whatever we last had
     }
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useQueueSocket(load, "battle-updated");
+  useQueueSocket(hostId, load, "battle-updated");
 
   async function vote(side) {
     if (!battle || votedFor || voting) return;

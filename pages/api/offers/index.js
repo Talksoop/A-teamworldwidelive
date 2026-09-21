@@ -1,23 +1,37 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
+import { getHostBySlug } from "../../../lib/host";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    // Public by default (submit page needs active offers). Admin can pass
-    // ?all=1 to see inactive ones too.
-    const { all } = req.query;
-    if (all && !isAuthed(req)) {
-      return res.status(401).json({ error: "Not authorized." });
+    // Admin (?all=1, needs the session) sees every offer for their own
+    // channel. Public (submit page) passes ?slug=... and sees only active ones.
+    const { all, slug } = req.query;
+
+    let hostId;
+    if (all) {
+      hostId = getSessionHostId(req);
+      if (!hostId) {
+        return res.status(401).json({ error: "Not authorized." });
+      }
+    } else {
+      const host = await getHostBySlug(slug);
+      if (!host) {
+        return res.status(404).json({ error: "Channel not found." });
+      }
+      hostId = host.id;
     }
+
     const offers = await prisma.offer.findMany({
-      where: all ? undefined : { active: true },
+      where: all ? { hostId } : { hostId, active: true },
       orderBy: [{ type: "asc" }, { priority: "desc" }, { priceCents: "asc" }],
     });
     return res.status(200).json(offers);
   }
 
   if (req.method === "POST") {
-    if (!isAuthed(req)) {
+    const hostId = getSessionHostId(req);
+    if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
     const { type, name, description, priceCents, priority } = req.body || {};
@@ -32,6 +46,7 @@ export default async function handler(req, res) {
     }
     const offer = await prisma.offer.create({
       data: {
+        hostId,
         type,
         name: name.trim(),
         description: description ? description.trim() : null,

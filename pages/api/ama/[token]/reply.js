@@ -1,8 +1,9 @@
 import { prisma } from "../../../../lib/prisma";
-import { isAuthed } from "../../../../lib/auth";
+import { getSessionHostId } from "../../../../lib/auth";
 
 export default async function handler(req, res) {
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
   }
   if (req.method !== "PATCH") {
@@ -11,6 +12,11 @@ export default async function handler(req, res) {
   }
 
   const { token: id } = req.query;
+  const existing = await prisma.amaRequest.findUnique({ where: { id } });
+  if (!existing || existing.hostId !== hostId) {
+    return res.status(404).json({ error: "Not found." });
+  }
+
   const { responseText, responseLink, responseSourceType } = req.body || {};
 
   if (!responseText && !responseLink) {

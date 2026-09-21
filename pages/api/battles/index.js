@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
 import { attachPlayUrls } from "../../../lib/s3";
 import { broadcastBattleUpdate } from "../../../lib/realtime";
 
@@ -12,12 +12,13 @@ async function withSongs(battles) {
 }
 
 export default async function handler(req, res) {
-  if (!isAuthed(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return res.status(401).json({ error: "Not authorized." });
   }
 
   if (req.method === "GET") {
-    const battles = await prisma.battle.findMany({ orderBy: { createdAt: "desc" } });
+    const battles = await prisma.battle.findMany({ where: { hostId }, orderBy: { createdAt: "desc" } });
     return res.status(200).json(await withSongs(battles));
   }
 
@@ -30,11 +31,11 @@ export default async function handler(req, res) {
       prisma.submission.findUnique({ where: { id: songAId } }),
       prisma.submission.findUnique({ where: { id: songBId } }),
     ]);
-    if (!songA || !songB) {
-      return res.status(400).json({ error: "One of those songs no longer exists." });
+    if (!songA || !songB || songA.hostId !== hostId || songB.hostId !== hostId) {
+      return res.status(400).json({ error: "One of those songs isn't yours." });
     }
-    const battle = await prisma.battle.create({ data: { songAId, songBId } });
-    broadcastBattleUpdate();
+    const battle = await prisma.battle.create({ data: { hostId, songAId, songBId } });
+    broadcastBattleUpdate(hostId);
     return res.status(201).json(battle);
   }
 

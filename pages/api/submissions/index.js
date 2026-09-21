@@ -1,26 +1,34 @@
 import { prisma } from "../../../lib/prisma";
-import { isAuthed } from "../../../lib/auth";
+import { getSessionHostId } from "../../../lib/auth";
+import { getHostBySlug } from "../../../lib/host";
 import { attachPlayUrls } from "../../../lib/s3";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    // Admin-only: full submission list including names/messages.
-    if (!isAuthed(req)) {
+    // Admin-only: full submission list including names/messages, scoped to
+    // the logged-in host.
+    const hostId = getSessionHostId(req);
+    if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
     const { status } = req.query;
     const submissions = await prisma.submission.findMany({
-      where: status ? { status } : undefined,
+      where: status ? { hostId, status } : { hostId },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     });
     return res.status(200).json(await attachPlayUrls(submissions));
   }
 
   if (req.method === "POST") {
-    // Public submission endpoint.
-    const { name, songName, message, link, sourceType } = req.body || {};
+    // Public submission endpoint — the fan's page is at /h/[slug]/submit.
+    const { slug, name, songName, message, link, sourceType } = req.body || {};
     const isUpload = sourceType === "UPLOAD";
+
+    const host = await getHostBySlug(slug);
+    if (!host) {
+      return res.status(404).json({ error: "Channel not found." });
+    }
 
     if (!name || !link || !songName) {
       return res.status(400).json({ error: "Name, song name, and link are required." });
@@ -39,6 +47,7 @@ export default async function handler(req, res) {
 
     const submission = await prisma.submission.create({
       data: {
+        hostId: host.id,
         name: name.trim(),
         songName: songName.trim(),
         message: message ? message.trim() : null,
@@ -47,7 +56,7 @@ export default async function handler(req, res) {
         status: "PENDING",
       },
     });
-    broadcastQueueUpdate();
+    broadcastQueueUpdate(host.id);
     return res.status(201).json(submission);
   }
 

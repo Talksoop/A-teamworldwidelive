@@ -1,16 +1,22 @@
-import { checkPassword, authCookie } from "../../lib/auth";
+import { prisma } from "../../lib/prisma";
+import { verifyPassword, sessionCookie } from "../../lib/auth";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end();
   }
 
-  const { password } = req.body || {};
-  if (!checkPassword(password)) {
-    return res.status(401).json({ error: "Wrong password." });
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required." });
   }
 
-  res.setHeader("Set-Cookie", authCookie());
-  return res.status(200).json({ ok: true });
+  const host = await prisma.host.findUnique({ where: { email: email.trim().toLowerCase() } });
+  if (!host || !(await verifyPassword(password, host.passwordHash))) {
+    return res.status(401).json({ error: "Wrong email or password." });
+  }
+
+  res.setHeader("Set-Cookie", sessionCookie(host.id));
+  return res.status(200).json({ ok: true, slug: host.slug });
 }

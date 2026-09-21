@@ -8,6 +8,7 @@ function formatPrice(cents) {
 
 export default function Submit() {
   const router = useRouter();
+  const { slug } = router.query;
   const [name, setName] = useState("");
   const [songName, setSongName] = useState("");
   const [link, setLink] = useState("");
@@ -28,10 +29,11 @@ export default function Submit() {
   const pollTries = useRef(0);
 
   useEffect(() => {
+    if (!slug) return;
     async function load() {
       const [settingsRes, offersRes] = await Promise.all([
-        fetch("/api/settings"),
-        fetch("/api/offers"),
+        fetch(`/api/settings?slug=${slug}`),
+        fetch(`/api/offers?slug=${slug}`),
       ]);
       setSettings(await settingsRes.json());
       const offers = await offersRes.json();
@@ -39,7 +41,7 @@ export default function Submit() {
       setReactOffers(offers.filter((o) => o.type === "REACT"));
     }
     load();
-  }, []);
+  }, [slug]);
 
   // Returning from Stripe: poll until the webhook has confirmed payment, then
   // either prompt for a bonus song or wrap up.
@@ -119,6 +121,7 @@ export default function Submit() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          slug,
           name,
           songName,
           link: sourceMode === "upload" ? uploadKey : link,
@@ -297,7 +300,7 @@ export default function Submit() {
           <h1 style={styles.doneTitle}>You're in the queue</h1>
           <p style={styles.doneSub}>Keep an eye on the stream — it'll play when it's up.</p>
           <div style={styles.doneBtns}>
-            <a style={styles.secondaryBtn} href="/overlay">
+            <a style={styles.secondaryBtn} href={`/h/${slug}/overlay`}>
               View live queue
             </a>
             <button
@@ -308,7 +311,7 @@ export default function Submit() {
                 setSongName("");
                 setLink("");
                 setMessage("");
-                router.replace("/submit", undefined, { shallow: true });
+                router.replace(`/h/${slug}/submit`, undefined, { shallow: true });
               }}
             >
               Submit another

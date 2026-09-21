@@ -20,8 +20,14 @@ app.prepare().then(() => {
   // multiple serverless replicas.
   global.io = io;
 
-  io.on("connection", () => {
-    // Nothing to do on connect — clients just listen for broadcasts.
+  io.on("connection", (socket) => {
+    // Clients join a room for their host right after connecting so
+    // broadcasts only reach that host's own admin/overlay/vote pages.
+    socket.on("join", (hostId) => {
+      if (typeof hostId === "string" && hostId) {
+        socket.join(hostId);
+      }
+    });
   });
 
   httpServer.listen(port, () => {

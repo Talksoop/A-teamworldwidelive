@@ -1,40 +1,49 @@
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/router";
 import Head from "next/head";
-import { useQueueSocket } from "../lib/useQueueSocket";
+import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 export default function Overlay() {
+  const router = useRouter();
+  const { slug } = router.query;
   const [data, setData] = useState({ playing: null, queue: [] });
   const [battle, setBattle] = useState(null);
   const [submitUrl, setSubmitUrl] = useState("");
+  const [hostId, setHostId] = useState(null);
 
   const load = useCallback(async () => {
+    if (!slug) return;
     try {
-      const res = await fetch("/api/current");
+      const res = await fetch(`/api/current?slug=${slug}`);
       const json = await res.json();
       setData(json);
+      if (json.hostId) setHostId(json.hostId);
     } catch {
       // Silently retry on the next update — an overlay shouldn't show errors on stream.
     }
-  }, []);
+  }, [slug]);
 
   const loadBattle = useCallback(async () => {
+    if (!slug) return;
     try {
-      const res = await fetch("/api/current-battle");
+      const res = await fetch(`/api/current-battle?slug=${slug}`);
       const json = await res.json();
       setBattle(json.battle);
+      if (json.hostId) setHostId(json.hostId);
     } catch {
       // keep whatever we last had
     }
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
-    setSubmitUrl(`${window.location.origin}/submit`);
+    if (!slug) return;
+    setSubmitUrl(`${window.location.origin}/h/${slug}/submit`);
     load();
     loadBattle();
-  }, [load, loadBattle]);
+  }, [slug, load, loadBattle]);
 
-  useQueueSocket(load);
-  useQueueSocket(loadBattle, "battle-updated");
+  useQueueSocket(hostId, load);
+  useQueueSocket(hostId, loadBattle, "battle-updated");
 
   const battleTotal = battle ? battle.votesA + battle.votesB : 0;
   const battlePctA = battleTotal > 0 ? Math.round((battle.votesA / battleTotal) * 100) : 50;

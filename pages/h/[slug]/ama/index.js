@@ -8,6 +8,7 @@ function formatPrice(cents) {
 
 export default function Ama() {
   const router = useRouter();
+  const { slug } = router.query;
   const [settings, setSettings] = useState(null);
   const [name, setName] = useState("");
   const [question, setQuestion] = useState("");
@@ -16,13 +17,14 @@ export default function Ama() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/ama-settings")
+    if (!slug) return;
+    fetch(`/api/ama-settings?slug=${slug}`)
       .then((r) => r.json())
       .then(setSettings);
     if (router.query.canceled) {
       setError("Checkout was canceled — nothing was charged.");
     }
-  }, [router.query.canceled]);
+  }, [slug, router.query.canceled]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,12 +34,12 @@ export default function Ama() {
       const res = await fetch("/api/ama", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, question, link }),
+        body: JSON.stringify({ slug, name, question, link }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't send that. Try again.");
       if (data.free) {
-        router.push(`/ama/${data.token}`);
+        router.push(`/h/${slug}/ama/${data.token}`);
       } else {
         window.location.href = data.url;
       }

@@ -1,26 +1,36 @@
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Head from "next/head";
 
-export default function Home() {
+export default function HostHome() {
+  const router = useRouter();
+  const { slug } = router.query;
+  const [host, setHost] = useState(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`/api/host-info?slug=${slug}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setHost);
+  }, [slug]);
+
   return (
     <>
       <Head>
-        <title>A-Team Worldwide Live</title>
+        <title>{host ? host.name : "Live Queue"}</title>
       </Head>
       <main style={styles.main}>
         <div style={styles.badge} aria-hidden="true">
           <span style={styles.badgeStar}>★</span>
         </div>
-        <h1 style={styles.title}>
-          <span className="glow-text">A-TEAM</span>
-          <span style={styles.titleSub}>WORLD WIDE LIVE</span>
-        </h1>
-        <p style={styles.sub}>Run live song review sessions with paid skip-the-line tiers, battles, and more.</p>
+        <h1 style={styles.title}>{host ? host.name : "Live Queue"}</h1>
+        <p style={styles.sub}>Send a track. It's in the queue. Watch it play live.</p>
         <div style={styles.links}>
-          <a href="/signup" style={styles.primaryBtn}>
-            Start your channel
+          <a href={`/h/${slug}/submit`} style={styles.primaryBtn}>
+            Submit a track
           </a>
-          <a href="/login" style={styles.secondaryLink}>
-            Log in
+          <a href={`/h/${slug}/overlay`} style={styles.secondaryLink}>
+            View the live queue
           </a>
         </div>
       </main>
@@ -57,19 +67,9 @@ const styles = {
   title: {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
-    fontSize: "clamp(2.2rem, 9vw, 3.6rem)",
+    fontSize: "clamp(2rem, 8vw, 3rem)",
     margin: 0,
-    letterSpacing: "0.03em",
-    lineHeight: 1.15,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  titleSub: {
-    fontSize: "0.32em",
-    color: "var(--text-dim)",
-    letterSpacing: "0.35em",
-    marginTop: 6,
+    letterSpacing: "0.02em",
   },
   sub: {
     color: "var(--text-dim)",

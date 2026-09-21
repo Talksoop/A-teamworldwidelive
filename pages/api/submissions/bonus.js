@@ -42,6 +42,7 @@ export default async function handler(req, res) {
 
   const bonus = await prisma.submission.create({
     data: {
+      hostId: parent.hostId,
       name: name.trim(),
       songName: songName.trim(),
       message: message ? message.trim() : null,
@@ -56,6 +57,6 @@ export default async function handler(req, res) {
     },
   });
 
-  broadcastQueueUpdate();
+  broadcastQueueUpdate(parent.hostId);
   return res.status(201).json(bonus);
 }
