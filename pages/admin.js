@@ -131,6 +131,14 @@ export default function Admin() {
           >
             Channel
           </button>
+          {me?.isFounder && (
+            <button
+              style={tab === "platform" ? styles.tabActive : styles.tab}
+              onClick={() => setTab("platform")}
+            >
+              Platform
+            </button>
+          )}
         </div>
         {error && <p style={styles.error}>{error}</p>}
 
@@ -242,8 +250,10 @@ export default function Admin() {
           <Battles submissions={submissions} hostId={me?.id} />
         ) : tab === "ama" ? (
           <AmaInbox />
-        ) : (
+        ) : tab === "channel" ? (
           <Channel me={me} />
+        ) : (
+          <Platform />
         )}
       </main>
     </>
@@ -1115,6 +1125,84 @@ function Channel({ me }) {
         <button style={styles.cancelBtn} onClick={logout}>
           Log out
         </button>
+      </section>
+    </div>
+  );
+}
+
+function Platform() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/platform/hosts")
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.error || "Couldn't load.");
+        }
+        return r.json();
+      })
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, []);
+
+  if (error) return <p style={styles.error}>{error}</p>;
+  if (!data) return null;
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Platform totals</p>
+        <div style={styles.playingCard}>
+          <div>
+            <p style={styles.name}>{data.totals.hostCount} host(s)</p>
+            <p style={styles.submitter}>
+              {formatPrice(data.totals.grossRevenueCents)} total processed
+            </p>
+          </div>
+          <p style={{ ...styles.offerCardPrice, margin: 0 }}>
+            {formatPrice(data.totals.platformFeeCents)}
+          </p>
+        </div>
+        <p style={styles.hint}>Platform fee earned, all hosts combined.</p>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Hosts</p>
+        <ul style={styles.list}>
+          {data.hosts.map((h) => (
+            <li key={h.id} style={styles.row}>
+              <div>
+                <p style={styles.name}>
+                  {h.name}
+                  {h.isFounder && <span style={styles.paidTag}>YOU</span>}
+                  {!h.isFounder && h.stripeOnboarded && (
+                    <span style={styles.bonusTag}>STRIPE OK</span>
+                  )}
+                  {!h.isFounder && !h.stripeOnboarded && (
+                    <span style={{ ...styles.bonusTag, color: "var(--live)", borderColor: "var(--live)" }}>
+                      NOT ONBOARDED
+                    </span>
+                  )}
+                </p>
+                <p style={styles.submitter}>
+                  {h.email} · /h/{h.slug}
+                </p>
+                <p style={styles.submitter}>
+                  {h.submissionCount} submissions · {h.amaCount} AMA requests ·{" "}
+                  {h.paidTransactionCount} paid
+                </p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={styles.offerCardPrice}>{formatPrice(h.grossRevenueCents)}</p>
+                {!h.isFounder && (
+                  <p style={styles.submitter}>+{formatPrice(h.platformFeeCents)} fee</p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
