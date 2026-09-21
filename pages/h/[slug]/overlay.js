@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { useQueueSocket } from "../../../lib/useQueueSocket";
+import { parseLink } from "../../../lib/linkParse";
 
 export default function Overlay() {
   const router = useRouter();
@@ -82,15 +83,19 @@ export default function Overlay() {
           {data.playing ? (
             <>
               <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
-              <div className="visualizer" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+              {data.playing.sourceType === "UPLOAD" ? (
+                <Waveform key={data.playing.id} src={data.playing.playUrl} />
+              ) : (
+                <div className="visualizer" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              )}
               <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
               {data.playing.message && <p style={styles.trackMsg}>“{data.playing.message}”</p>}
               {data.playing.sourceType === "UPLOAD" && data.playing.playUrl && (
@@ -114,6 +119,22 @@ export default function Overlay() {
                   )}
                 </div>
               )}
+              {data.playing.sourceType !== "UPLOAD" &&
+                (() => {
+                  const { embedUrl } = parseLink(data.playing.link);
+                  if (!embedUrl) return null;
+                  return (
+                    <div style={styles.playerWrap}>
+                      <iframe
+                        key={data.playing.id}
+                        style={styles.embedFrame}
+                        src={embedUrl}
+                        allow="autoplay; encrypted-media"
+                        frameBorder="0"
+                      />
+                    </div>
+                  );
+                })()}
             </>
           ) : (
             <p style={styles.idle}>Nothing queued up yet</p>
@@ -141,6 +162,76 @@ export default function Overlay() {
       </main>
     </>
   );
+}
+
+// Real frequency-based waveform for our own uploaded audio, driven by the
+// Web Audio API AnalyserNode — this is an actual signal reading, not a
+// canned animation. Falls back silently (keeps rendering a flat/idle bar) if
+// the browser blocks it for any reason (e.g. autoplay policy, CORS).
+function Waveform({ src }) {
+  const audioElRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!src) return undefined;
+
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.src = src;
+    audio.autoplay = false; // this hidden element is analysis-only; the visible <audio>/<video> below does the real playback
+    audio.muted = true;
+    audioElRef.current = audio;
+
+    let audioCtx;
+    let analyser;
+    let animationId;
+    let cancelled = false;
+
+    async function start() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaElementSource(audio);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        await audio.play();
+      } catch {
+        cancelled = true;
+        return;
+      }
+      if (cancelled) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function draw() {
+        animationId = requestAnimationFrame(draw);
+        if (!ctx) return;
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = canvas.width / bufferLength;
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+          ctx.fillStyle = i % 2 === 0 ? "#4fd8f5" : "#9b6bff";
+          ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 2, barHeight);
+        }
+      }
+      draw();
+    }
+    start();
+
+    return () => {
+      cancelled = true;
+      if (animationId) cancelAnimationFrame(animationId);
+      audio.pause();
+      audioCtx?.close().catch(() => {});
+    };
+  }, [src]);
+
+  return <canvas ref={canvasRef} width={260} height={26} style={{ width: "100%", height: 26 }} />;
 }
 
 const styles = {
@@ -230,6 +321,12 @@ const styles = {
   player: {
     width: "100%",
     maxHeight: 220,
+  },
+  embedFrame: {
+    width: "100%",
+    height: 152,
+    border: "none",
+    borderRadius: 8,
   },
   idle: {
     color: "var(--text-dim)",

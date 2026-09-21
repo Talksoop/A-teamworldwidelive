@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import Head from "next/head";
 import { getSessionHostId } from "../lib/auth";
 import { useQueueSocket } from "../lib/useQueueSocket";
+import { parseLink, PLATFORM_LABELS } from "../lib/linkParse";
 
 export async function getServerSideProps({ req }) {
   if (!getSessionHostId(req)) {
@@ -12,6 +13,12 @@ export async function getServerSideProps({ req }) {
 
 function formatPrice(cents) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+function PlatformBadge({ link }) {
+  const { platform } = parseLink(link);
+  if (platform === "link") return null;
+  return <span style={styles.platformBadge}>{PLATFORM_LABELS[platform]}</span>;
 }
 
 export default function Admin() {
@@ -152,6 +159,7 @@ export default function Admin() {
                     <p style={styles.name}>{playing.songName || "(no song name)"}</p>
                     <p style={styles.submitter}>{playing.name}</p>
                     <a style={styles.link} href={playing.playUrl || playing.link} target="_blank" rel="noreferrer">
+                      {playing.sourceType !== "UPLOAD" && <PlatformBadge link={playing.link} />}
                       {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
                     </a>
                     {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
@@ -195,6 +203,7 @@ export default function Admin() {
                         </p>
                         <p style={styles.submitter}>{s.name}</p>
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
+                          {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
                         </a>
                       </div>
@@ -223,6 +232,7 @@ export default function Admin() {
                         </p>
                         <p style={styles.submitter}>{s.name}</p>
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
+                          {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
                         </a>
                         {s.message && <p style={styles.msg}>“{s.message}”</p>}
@@ -1046,6 +1056,23 @@ function Channel({ me }) {
     window.location.href = "/login";
   }
 
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function deleteAccount() {
+    setDeleting(true);
+    setDeleteError("");
+    const res = await fetch("/api/account", { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setDeleteError(d.error || "Couldn't delete your account.");
+      setDeleting(false);
+      return;
+    }
+    window.location.href = "/";
+  }
+
   if (!me) return null;
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -1126,6 +1153,30 @@ function Channel({ me }) {
           Log out
         </button>
       </section>
+
+      {!me.isFounder && (
+        <section style={styles.section}>
+          <p style={{ ...styles.sectionLabel, color: "var(--live)" }}>Danger zone</p>
+          <p style={styles.empty}>
+            Deletes your account and everything in it — submissions, offers, battles, AMA
+            requests. This can't be undone.
+          </p>
+          <input
+            style={{ ...styles.input, marginBottom: 10 }}
+            placeholder='Type "delete" to confirm'
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+          />
+          {deleteError && <p style={styles.error}>{deleteError}</p>}
+          <button
+            style={styles.smallBtnDanger}
+            onClick={deleteAccount}
+            disabled={deleteConfirm.toLowerCase() !== "delete" || deleting}
+          >
+            {deleting ? "Deleting…" : "Delete my account"}
+          </button>
+        </section>
+      )}
     </div>
   );
 }
@@ -1337,6 +1388,14 @@ const styles = {
     padding: "2px 6px",
     borderRadius: 4,
     letterSpacing: "0.05em",
+  },
+  platformBadge: {
+    fontSize: "0.7rem",
+    color: "var(--text-dim)",
+    border: "1px solid var(--line)",
+    borderRadius: 4,
+    padding: "1px 6px",
+    marginRight: 6,
   },
   bonusTag: {
     fontSize: "0.65rem",
