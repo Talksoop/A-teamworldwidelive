@@ -987,6 +987,11 @@ function AmaCard({ request, onReplied, answered }) {
 function Channel({ me }) {
   const [connecting, setConnecting] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1003,6 +1008,27 @@ function Channel({ me }) {
     const data = await res.json();
     setConnecting(false);
     if (data.url) window.location.href = data.url;
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess(false);
+    setPwSaving(true);
+    const res = await fetch("/api/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setPwSaving(false);
+    if (!res.ok) {
+      setPwError(data.error || "Couldn't change your password.");
+      return;
+    }
+    setCurrentPassword("");
+    setNewPassword("");
+    setPwSuccess(true);
   }
 
   async function logout() {
@@ -1056,6 +1082,33 @@ function Channel({ me }) {
             </button>
           </>
         )}
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Change password</p>
+        <form style={styles.offerForm} onSubmit={changePassword}>
+          <input
+            style={styles.input}
+            type="password"
+            placeholder="Current password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+          />
+          <input
+            style={styles.input}
+            type="password"
+            placeholder="New password (min 8 characters)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          {pwError && <p style={styles.error}>{pwError}</p>}
+          {pwSuccess && <p style={{ ...styles.empty, color: "var(--cyan)" }}>Password updated.</p>}
+          <button style={styles.saveBtn} type="submit" disabled={pwSaving}>
+            {pwSaving ? "Saving…" : "Update password"}
+          </button>
+        </form>
       </section>
 
       <section style={styles.section}>
