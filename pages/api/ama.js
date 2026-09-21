@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { getStripe } from "../../lib/stripe";
 import { getSessionHostId } from "../../lib/auth";
 import { getHostBySlug } from "../../lib/host";
+import { rateLimited } from "../../lib/rateLimit";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    if (rateLimited(req, res, "ama", { windowMs: 60 * 60 * 1000, max: 8 })) return;
     const { slug, name, question, link } = req.body || {};
     if (!name || !question) {
       return res.status(400).json({ error: "Name and question are required." });

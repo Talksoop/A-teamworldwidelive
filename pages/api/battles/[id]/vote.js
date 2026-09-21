@@ -1,11 +1,13 @@
 import { prisma } from "../../../../lib/prisma";
 import { broadcastBattleUpdate } from "../../../../lib/realtime";
+import { rateLimited } from "../../../../lib/rateLimit";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end();
   }
+  if (rateLimited(req, res, "vote", { windowMs: 10 * 60 * 1000, max: 30 })) return;
 
   const { id } = req.query;
   const { side } = req.body || {};

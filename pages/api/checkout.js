@@ -2,12 +2,14 @@ import { prisma } from "../../lib/prisma";
 import { getStripe } from "../../lib/stripe";
 import { getHostBySlug } from "../../lib/host";
 import { broadcastQueueUpdate } from "../../lib/realtime";
+import { rateLimited } from "../../lib/rateLimit";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end();
   }
+  if (rateLimited(req, res, "checkout", { windowMs: 10 * 60 * 1000, max: 15 })) return;
 
   const { slug, name, songName, link, message, sourceType, skipOfferId, reactOfferId } =
     req.body || {};

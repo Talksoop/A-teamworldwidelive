@@ -3,6 +3,7 @@ import { getSessionHostId } from "../../../lib/auth";
 import { getHostBySlug } from "../../../lib/host";
 import { attachPlayUrls } from "../../../lib/s3";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
+import { rateLimited } from "../../../lib/rateLimit";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    if (rateLimited(req, res, "submit", { windowMs: 10 * 60 * 1000, max: 15 })) return;
     // Public submission endpoint — the fan's page is at /h/[slug]/submit.
     const { slug, name, songName, message, link, sourceType } = req.body || {};
     const isUpload = sourceType === "UPLOAD";

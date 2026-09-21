@@ -2,6 +2,7 @@ import formidable from "formidable";
 import fs from "fs/promises";
 import crypto from "crypto";
 import { uploadBuffer } from "../../lib/s3";
+import { rateLimited } from "../../lib/rateLimit";
 
 export const config = {
   api: { bodyParser: false },
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end();
   }
+  if (rateLimited(req, res, "upload", { windowMs: 60 * 60 * 1000, max: 20 })) return;
 
   const form = formidable({
     maxFiles: 1,

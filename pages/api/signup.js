@@ -1,12 +1,15 @@
 import { prisma } from "../../lib/prisma";
 import { hashPassword, sessionCookie } from "../../lib/auth";
 import { slugify } from "../../lib/host";
+import { rateLimited } from "../../lib/rateLimit";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).end();
   }
+
+  if (rateLimited(req, res, "signup", { windowMs: 60 * 60 * 1000, max: 5 })) return;
 
   const { email, password, name } = req.body || {};
   if (!email || !password || !name) {
