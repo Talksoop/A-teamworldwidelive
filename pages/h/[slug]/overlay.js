@@ -82,7 +82,13 @@ export default function Overlay() {
           </div>
           {data.playing ? (
             <>
-              <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
+              <div style={styles.nowPlayingHeader}>
+                <div style={styles.art} />
+                <div>
+                  <p style={styles.trackName}>{data.playing.songName || data.playing.name}</p>
+                  <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
+                </div>
+              </div>
               {data.playing.sourceType === "UPLOAD" ? (
                 <Waveform key={data.playing.id} src={data.playing.playUrl} />
               ) : (
@@ -96,7 +102,6 @@ export default function Overlay() {
                   <span></span>
                 </div>
               )}
-              <p style={styles.trackSubmitter}>submitted by {data.playing.name}</p>
               {data.playing.message && <p style={styles.trackMsg}>“{data.playing.message}”</p>}
               {data.playing.sourceType === "UPLOAD" && data.playing.playUrl && (
                 <div style={styles.playerWrap}>
@@ -298,6 +303,20 @@ const styles = {
     height: 8,
     borderRadius: "50%",
     background: "var(--live)",
+  },
+  nowPlayingHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  art: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    background: "linear-gradient(135deg,#1a1f38,#0d0f1a)",
+    border: "1px solid var(--line)",
+    flexShrink: 0,
   },
   trackName: {
     fontFamily: "var(--font-head)",

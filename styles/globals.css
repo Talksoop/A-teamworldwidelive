@@ -1,12 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #05060e;
-  --panel: #0c0f1e;
-  --panel-raised: #141830;
-  --panel-hover: #191f3c;
-  --line: #262c50;
-  --line-soft: #1a1f3d;
+  --bg: #08090f;
+  --panel: #10121c;
+  --panel-raised: #171a28;
+  --panel-hover: #1c2033;
+  --line: #262b40;
+  --line-soft: #1c2036;
   --text: #eef1fb;
   --text-dim: #8f96bf;
   --cyan: #4fd8f5;
@@ -19,7 +19,7 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   --shadow-lift: 0 12px 32px rgba(79, 216, 245, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4);
   --radius-sm: 8px;
-  --radius-md: 12px;
+  --radius-md: 14px;
   --radius-lg: 18px;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --transition: 160ms var(--ease);
