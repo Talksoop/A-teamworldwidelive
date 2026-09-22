@@ -7,6 +7,8 @@ export default function HostHome() {
   const router = useRouter();
   const { slug } = router.query;
   const [host, setHost] = useState(null);
+  const [fan, setFan] = useState(null);
+  const [following, setFollowing] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -14,6 +16,33 @@ export default function HostHome() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setHost);
   }, [slug]);
+
+  useEffect(() => {
+    fetch("/api/fan/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setFan);
+  }, []);
+
+  useEffect(() => {
+    if (!fan || !host) return;
+    fetch("/api/fan/following")
+      .then((r) => r.json())
+      .then((list) => setFollowing(list.some((h) => h.id === host.id)));
+  }, [fan, host]);
+
+  async function toggleFollow() {
+    if (!fan) {
+      window.location.href = "/fan/login";
+      return;
+    }
+    const method = following ? "DELETE" : "POST";
+    const res = await fetch("/api/fan/follow", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hostId: host.id }),
+    });
+    if (res.ok) setFollowing(!following);
+  }
 
   return (
     <>
@@ -34,8 +63,18 @@ export default function HostHome() {
         </div>
 
         <div style={styles.handleRow}>
-          <h1 style={styles.handleH1}>Submit to</h1>
-          <h1 style={{ ...styles.handleH1, color: "var(--cyan)" }}>@{slug}</h1>
+          <div>
+            <h1 style={styles.handleH1}>Submit to</h1>
+            <h1 style={{ ...styles.handleH1, color: "var(--cyan)" }}>@{slug}</h1>
+          </div>
+          {host && (
+            <button
+              style={following ? styles.followingBtn : styles.followBtn}
+              onClick={toggleFollow}
+            >
+              {following ? "Following" : "Follow"}
+            </button>
+          )}
         </div>
 
         <a href={`/h/${slug}/submit`} style={styles.card}>
@@ -117,9 +156,30 @@ const styles = {
   },
   handleRow: {
     display: "flex",
-    alignItems: "baseline",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
     margin: "22px 4px 16px",
+  },
+  followBtn: {
+    background: "var(--gradient)",
+    color: "#05060e",
+    border: "none",
+    fontWeight: 700,
+    padding: "8px 16px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.82rem",
+    whiteSpace: "nowrap",
+  },
+  followingBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    padding: "8px 16px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.82rem",
+    whiteSpace: "nowrap",
   },
   handleH1: {
     fontFamily: "var(--font-head)",

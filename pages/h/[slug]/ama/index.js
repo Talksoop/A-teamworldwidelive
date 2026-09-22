@@ -28,6 +28,18 @@ export default function Ama() {
     }
   }, [slug, router.query.canceled]);
 
+  useEffect(() => {
+    fetch("/api/fan/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fan) => {
+        if (fan) {
+          setName((prev) => prev || fan.name);
+          setEmail((prev) => prev || fan.email);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setState("sending");

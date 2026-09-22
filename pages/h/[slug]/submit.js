@@ -45,6 +45,19 @@ export default function Submit() {
     load();
   }, [slug]);
 
+  // Prefill from a logged-in fan account so they don't retype it every time.
+  useEffect(() => {
+    fetch("/api/fan/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fan) => {
+        if (fan) {
+          setName((prev) => prev || fan.name);
+          setEmail((prev) => prev || fan.email);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Returning from Stripe: poll until the webhook has confirmed payment, then
   // either prompt for a bonus song or wrap up.
   useEffect(() => {

@@ -10,5 +10,5 @@ export default async function handler(req, res) {
   if (!host) {
     return res.status(404).json({ error: "Channel not found." });
   }
-  return res.status(200).json({ name: host.name, slug: host.slug });
+  return res.status(200).json({ id: host.id, name: host.name, slug: host.slug });
 }
