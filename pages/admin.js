@@ -1188,16 +1188,24 @@ function Channel({ me }) {
       </section>
 
       <section style={styles.section}>
-        <p style={styles.sectionLabel}>Change password</p>
+        <p style={styles.sectionLabel}>{me.hasPassword ? "Change password" : "Set a password"}</p>
+        {!me.hasPassword && (
+          <p style={styles.empty}>
+            You signed up with Google, so there's no password yet. Set one if you'd also like to be
+            able to log in with email + password.
+          </p>
+        )}
         <form style={styles.offerForm} onSubmit={changePassword}>
-          <input
-            style={styles.input}
-            type="password"
-            placeholder="Current password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
+          {me.hasPassword && (
+            <input
+              style={styles.input}
+              type="password"
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          )}
           <input
             style={styles.input}
             type="password"
@@ -1209,7 +1217,7 @@ function Channel({ me }) {
           {pwError && <p style={styles.error}>{pwError}</p>}
           {pwSuccess && <p style={{ ...styles.empty, color: "var(--cyan)" }}>Password updated.</p>}
           <button style={styles.saveBtn} type="submit" disabled={pwSaving}>
-            {pwSaving ? "Saving…" : "Update password"}
+            {pwSaving ? "Saving…" : me.hasPassword ? "Update password" : "Set password"}
           </button>
         </form>
       </section>

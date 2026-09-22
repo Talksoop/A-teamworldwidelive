@@ -65,6 +65,17 @@ export default function FanSignup() {
           <button style={styles.btn} type="submit" disabled={sending}>
             {sending ? "Creating…" : "Create account"}
           </button>
+          <div style={styles.divider}>
+            <span style={styles.dividerLine} />
+            <span>or</span>
+            <span style={styles.dividerLine} />
+          </div>
+          <a
+            style={styles.googleBtn}
+            href={`/api/auth/google/start?role=fan&returnTo=${encodeURIComponent("/discover")}`}
+          >
+            Continue with Google
+          </a>
           <a style={styles.link} href="/fan/login">
             Already have an account? Log in
           </a>
@@ -129,6 +140,32 @@ const styles = {
     padding: "11px",
     borderRadius: 8,
     fontSize: "0.95rem",
+  },
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    margin: "2px 0",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    background: "var(--line-soft)",
+  },
+  googleBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    color: "var(--text)",
+    fontWeight: 600,
+    padding: "11px",
+    borderRadius: 8,
+    fontSize: "0.9rem",
+    textDecoration: "none",
   },
   link: {
     textAlign: "center",

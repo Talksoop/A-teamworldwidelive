@@ -22,5 +22,6 @@ export default async function handler(req, res) {
     platformFeeBps: host.platformFeeBps,
     stripeOnboarded: host.stripeOnboarded,
     isFounder: host.isFounder,
+    hasPassword: Boolean(host.passwordHash),
   });
 }

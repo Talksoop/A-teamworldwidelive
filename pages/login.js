@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+
+const GOOGLE_ERRORS = {
+  google_denied: "Google sign-in was cancelled.",
+  google_state: "That Google sign-in link expired — try again.",
+  google_failed: "Couldn't complete Google sign-in. Try again.",
+  google_no_email: "Your Google account didn't share an email address — try a different sign-in method.",
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -8,6 +15,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (router.query.error && GOOGLE_ERRORS[router.query.error]) {
+      setError(GOOGLE_ERRORS[router.query.error]);
+    }
+  }, [router.query.error]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -54,6 +67,17 @@ export default function Login() {
           <button style={styles.btn} type="submit" disabled={sending}>
             {sending ? "Checking…" : "Log in"}
           </button>
+          <div style={styles.divider}>
+            <span style={styles.dividerLine} />
+            <span>or</span>
+            <span style={styles.dividerLine} />
+          </div>
+          <a
+            style={styles.googleBtn}
+            href={`/api/auth/google/start?role=host&returnTo=${encodeURIComponent("/admin")}`}
+          >
+            Continue with Google
+          </a>
           <a style={styles.link} href="/signup">
             New here? Create an account
           </a>
@@ -112,6 +136,32 @@ const styles = {
     padding: "11px",
     borderRadius: 8,
     fontSize: "0.95rem",
+  },
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    margin: "2px 0",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    background: "var(--line-soft)",
+  },
+  googleBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    color: "var(--text)",
+    fontWeight: 600,
+    padding: "11px",
+    borderRadius: 8,
+    fontSize: "0.9rem",
+    textDecoration: "none",
   },
   link: {
     textAlign: "center",

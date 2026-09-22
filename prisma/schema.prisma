@@ -10,7 +10,8 @@ generator client {
 model Host {
   id              String   @id @default(cuid())
   email           String   @unique
-  passwordHash    String
+  passwordHash    String? // null for accounts created via Google sign-in that never set a password
+  googleId        String?  @unique // Google's stable "sub" claim, once they've signed in with Google
   name            String // brand/display name shown on their public pages
   slug            String   @unique // used in URLs: /h/[slug]/...
   platformFeeBps  Int      @default(2000) // platform cut in basis points (2000 = 20%)
@@ -23,7 +24,8 @@ model Host {
 model Fan {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String? // null for accounts created via Google sign-in that never set a password
+  googleId     String?  @unique // Google's stable "sub" claim, once they've signed in with Google
   name         String
   createdAt    DateTime @default(now())
 }

@@ -17,7 +17,13 @@ export default async function handler(req, res) {
   }
 
   const fan = await prisma.fan.findUnique({ where: { email: email.trim().toLowerCase() } });
-  if (!fan || !(await verifyPassword(password, fan.passwordHash))) {
+  if (!fan) {
+    return res.status(401).json({ error: "Wrong email or password." });
+  }
+  if (!fan.passwordHash) {
+    return res.status(401).json({ error: "This account signs in with Google — use \"Continue with Google\" below." });
+  }
+  if (!(await verifyPassword(password, fan.passwordHash))) {
     return res.status(401).json({ error: "Wrong email or password." });
   }
 

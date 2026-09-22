@@ -17,7 +17,13 @@ export default async function handler(req, res) {
   }
 
   const host = await prisma.host.findUnique({ where: { email: email.trim().toLowerCase() } });
-  if (!host || !(await verifyPassword(password, host.passwordHash))) {
+  if (!host) {
+    return res.status(401).json({ error: "Wrong email or password." });
+  }
+  if (!host.passwordHash) {
+    return res.status(401).json({ error: "This account signs in with Google — use \"Continue with Google\" below." });
+  }
+  if (!(await verifyPassword(password, host.passwordHash))) {
     return res.status(401).json({ error: "Wrong email or password." });
   }
 
