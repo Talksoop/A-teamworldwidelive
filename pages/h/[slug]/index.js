@@ -9,12 +9,16 @@ export default function HostHome() {
   const [host, setHost] = useState(null);
   const [fan, setFan] = useState(null);
   const [following, setFollowing] = useState(false);
+  const [upcoming, setUpcoming] = useState([]);
 
   useEffect(() => {
     if (!slug) return;
     fetch(`/api/host-info?slug=${slug}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setHost);
+    fetch(`/api/schedule/upcoming?slug=${slug}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setUpcoming);
   }, [slug]);
 
   useEffect(() => {
@@ -76,6 +80,29 @@ export default function HostHome() {
             </button>
           )}
         </div>
+
+        {upcoming.length > 0 && (
+          <div style={styles.upcomingBox}>
+            <p style={styles.upcomingLabel}>Going live soon</p>
+            {upcoming.slice(0, 3).map((e) => (
+              <div key={e.id} style={styles.upcomingRow}>
+                <span style={styles.upcomingTitle}>
+                  {e.title}
+                  {e.platform && ` · ${e.platform}`}
+                </span>
+                <span style={styles.upcomingWhen}>
+                  {new Date(e.startsAt).toLocaleString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <a href={`/h/${slug}/submit`} style={styles.card}>
           <div style={styles.cardTop}>
@@ -186,6 +213,35 @@ const styles = {
     fontWeight: 700,
     fontSize: "1.3rem",
     margin: 0,
+  },
+  upcomingBox: {
+    background: "var(--panel)",
+    border: "1px solid var(--line-soft)",
+    borderRadius: "var(--radius-md)",
+    padding: "14px 16px",
+    marginBottom: 14,
+  },
+  upcomingLabel: {
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    color: "var(--cyan)",
+    margin: "0 0 8px",
+    textTransform: "uppercase",
+  },
+  upcomingRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    fontSize: "0.85rem",
+    padding: "6px 0",
+  },
+  upcomingTitle: {
+    fontWeight: 600,
+  },
+  upcomingWhen: {
+    color: "var(--text-dim)",
+    whiteSpace: "nowrap",
   },
   card: {
     display: "block",

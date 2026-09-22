@@ -3,6 +3,7 @@ import { hashPassword, sessionCookie } from "../../lib/auth";
 import { slugify } from "../../lib/host";
 import { rateLimited } from "../../lib/rateLimit";
 import { notifyFounderNewHost } from "../../lib/notifications";
+import { ensureLinkedFanCookie } from "../../lib/accountLink";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
   await prisma.settings.create({ data: { hostId: host.id } });
   notifyFounderNewHost(host);
 
-  res.setHeader("Set-Cookie", sessionCookie(host.id));
+  const fanCookie = await ensureLinkedFanCookie(host);
+  res.setHeader("Set-Cookie", [sessionCookie(host.id), fanCookie]);
   return res.status(201).json({ ok: true, slug: host.slug });
 }

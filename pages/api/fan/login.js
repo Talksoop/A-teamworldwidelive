@@ -2,6 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { verifyPassword } from "../../../lib/auth";
 import { fanSessionCookie } from "../../../lib/fanAuth";
 import { rateLimited } from "../../../lib/rateLimit";
+import { linkedHostCookieIfExists } from "../../../lib/accountLink";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -20,6 +21,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Wrong email or password." });
   }
 
-  res.setHeader("Set-Cookie", fanSessionCookie(fan.id));
+  // If this email also has a creator account, log them into that side too
+  // — no separate password prompt, since they've already proven this
+  // email+password pair. (We don't auto-create a creator account here; see
+  // lib/accountLink.js for why.)
+  const hostCookie = await linkedHostCookieIfExists(fan);
+  res.setHeader("Set-Cookie", hostCookie ? [fanSessionCookie(fan.id), hostCookie] : fanSessionCookie(fan.id));
   return res.status(200).json({ ok: true, name: fan.name });
 }

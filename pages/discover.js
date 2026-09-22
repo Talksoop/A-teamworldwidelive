@@ -6,6 +6,7 @@ export default function Discover() {
   const [hosts, setHosts] = useState([]);
   const [fan, setFan] = useState(null);
   const [following, setFollowing] = useState(new Set());
+  const [upcoming, setUpcoming] = useState([]);
 
   useEffect(() => {
     fetch("/api/hosts")
@@ -14,6 +15,9 @@ export default function Discover() {
     fetch("/api/fan/me")
       .then((r) => (r.ok ? r.json() : null))
       .then(setFan);
+    fetch("/api/schedule/upcoming")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setUpcoming);
   }, []);
 
   useEffect(() => {
@@ -53,6 +57,32 @@ export default function Discover() {
       <main style={styles.main}>
         <h1 style={styles.title}>Discover creators</h1>
         <p style={styles.sub}>Follow the ones you want to keep up with.</p>
+
+        {upcoming.length > 0 && (
+          <div style={styles.calendarBox}>
+            <p style={styles.calendarLabel}>Going live soon</p>
+            {upcoming.slice(0, 8).map((e) => (
+              <a key={e.id} href={`/h/${e.host.slug}`} style={styles.calendarRow}>
+                <div>
+                  <div style={styles.calendarTitle}>{e.title}</div>
+                  <div style={styles.calendarHost}>
+                    {e.host.name}
+                    {e.platform && ` · ${e.platform}`}
+                  </div>
+                </div>
+                <span style={styles.calendarWhen}>
+                  {new Date(e.startsAt).toLocaleString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
 
         {hosts.length === 0 ? (
           <p style={styles.empty}>No creators yet.</p>
@@ -97,6 +127,45 @@ const styles = {
   empty: {
     color: "var(--text-dim)",
     fontSize: "0.9rem",
+  },
+  calendarBox: {
+    background: "var(--panel)",
+    border: "1px solid var(--line-soft)",
+    borderRadius: "var(--radius-md)",
+    padding: "14px 16px",
+    marginBottom: 20,
+  },
+  calendarLabel: {
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    color: "var(--cyan)",
+    margin: "0 0 8px",
+    textTransform: "uppercase",
+  },
+  calendarRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    padding: "8px 0",
+    textDecoration: "none",
+    color: "var(--text)",
+    borderTop: "1px solid var(--line-soft)",
+  },
+  calendarTitle: {
+    fontWeight: 600,
+    fontSize: "0.9rem",
+  },
+  calendarHost: {
+    fontSize: "0.78rem",
+    color: "var(--text-dim)",
+    marginTop: 2,
+  },
+  calendarWhen: {
+    fontSize: "0.8rem",
+    color: "var(--text-dim)",
+    whiteSpace: "nowrap",
   },
   row: {
     display: "flex",

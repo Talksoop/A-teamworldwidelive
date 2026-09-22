@@ -92,6 +92,29 @@ model Settings {
   amaPriceCents  Int     @default(1000)
 }
 
+model LiveEvent {
+  id        String   @id @default(cuid())
+  hostId    String
+  title     String   @default("Going live")
+  platform  String? // e.g. "Twitch", "TikTok", "YouTube", "Instagram Live"
+  startsAt  DateTime
+  url       String? // optional link to the stream
+  createdAt DateTime @default(now())
+}
+
+model RadioRecommendation {
+  id           String   @id @default(cuid())
+  hostId       String
+  submissionId String   @unique // one recommendation per submission
+  fanId        String?
+  name         String
+  email        String?
+  songName     String?
+  link         String?
+  emailSent    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
 model AmaRequest {
   id                 String    @id @default(cuid())
   hostId             String

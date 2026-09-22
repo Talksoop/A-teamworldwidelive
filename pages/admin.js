@@ -27,6 +27,7 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [dragId, setDragId] = useState(null);
   const [me, setMe] = useState(null);
+  const [radioRecommendedIds, setRadioRecommendedIds] = useState(new Set());
 
   useEffect(() => {
     fetch("/api/me")
@@ -44,9 +45,17 @@ export default function Admin() {
     setSubmissions(data);
   }, []);
 
+  const loadRadioRecommended = useCallback(async () => {
+    const res = await fetch("/api/radio-recommendations");
+    if (!res.ok) return;
+    const data = await res.json();
+    setRadioRecommendedIds(new Set(data.map((r) => r.submissionId)));
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadRadioRecommended();
+  }, [load, loadRadioRecommended]);
 
   useQueueSocket(me?.id, load);
 
@@ -62,6 +71,22 @@ export default function Admin() {
       return;
     }
     load();
+  }
+
+  async function recommendForRadio(id) {
+    setError("");
+    setRadioRecommendedIds((prev) => new Set(prev).add(id)); // optimistic
+    const res = await fetch(`/api/submissions/${id}/recommend-radio`, { method: "POST" });
+    if (!res.ok) {
+      setError("Couldn't recommend that for radio. Try again.");
+      setRadioRecommendedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      return;
+    }
+    loadRadioRecommended();
   }
 
   const pending = submissions.filter((s) => s.status === "PENDING");
@@ -133,6 +158,18 @@ export default function Admin() {
             AMA Inbox
           </button>
           <button
+            style={tab === "schedule" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("schedule")}
+          >
+            Schedule
+          </button>
+          <button
+            style={tab === "radio" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("radio")}
+          >
+            Radio
+          </button>
+          <button
             style={tab === "channel" ? styles.tabActive : styles.tab}
             onClick={() => setTab("channel")}
           >
@@ -164,9 +201,18 @@ export default function Admin() {
                     </a>
                     {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
                   </div>
-                  <button style={styles.doneBtn} onClick={() => updateStatus(playing.id, "DONE")}>
-                    Mark done
-                  </button>
+                  <div style={styles.rowBtns}>
+                    {radioRecommendedIds.has(playing.id) ? (
+                      <span style={styles.radioSentTag}>Recommended for radio</span>
+                    ) : (
+                      <button style={styles.radioBtn} onClick={() => recommendForRadio(playing.id)}>
+                        Recommend for radio
+                      </button>
+                    )}
+                    <button style={styles.doneBtn} onClick={() => updateStatus(playing.id, "DONE")}>
+                      Mark done
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <p style={styles.empty}>Nothing playing — pick from the queue below</p>
@@ -207,9 +253,18 @@ export default function Admin() {
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
                         </a>
                       </div>
-                      <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
-                        Play
-                      </button>
+                      <div style={styles.rowBtns}>
+                        {radioRecommendedIds.has(s.id) ? (
+                          <span style={styles.radioSentTag}>Recommended</span>
+                        ) : (
+                          <button style={styles.radioBtn} onClick={() => recommendForRadio(s.id)}>
+                            Radio
+                          </button>
+                        )}
+                        <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
+                          Play
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -238,6 +293,13 @@ export default function Admin() {
                         {s.message && <p style={styles.msg}>“{s.message}”</p>}
                       </div>
                       <div style={styles.rowBtns}>
+                        {radioRecommendedIds.has(s.id) ? (
+                          <span style={styles.radioSentTag}>Recommended</span>
+                        ) : (
+                          <button style={styles.radioBtn} onClick={() => recommendForRadio(s.id)}>
+                            Radio
+                          </button>
+                        )}
                         <button style={styles.playBtn} onClick={() => updateStatus(s.id, "QUEUED")}>
                           Add to queue
                         </button>
@@ -260,6 +322,10 @@ export default function Admin() {
           <Battles submissions={submissions} hostId={me?.id} />
         ) : tab === "ama" ? (
           <AmaInbox />
+        ) : tab === "schedule" ? (
+          <Schedule />
+        ) : tab === "radio" ? (
+          <RadioRecommendations />
         ) : tab === "channel" ? (
           <Channel me={me} />
         ) : (
@@ -1259,6 +1325,234 @@ function Platform() {
   );
 }
 
+function Schedule() {
+  const [events, setEvents] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/schedule");
+    if (res.ok) setEvents(await res.json());
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function deleteEvent(id) {
+    await fetch(`/api/schedule/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  async function createEvent(payload) {
+    const res = await fetch("/api/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Couldn't save that.");
+      return;
+    }
+    setShowForm(false);
+    load();
+  }
+
+  const now = new Date();
+  const upcoming = events.filter((e) => new Date(e.startsAt) >= now);
+  const past = events.filter((e) => new Date(e.startsAt) < now);
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>
+          Upcoming — shown on your channel page and the sitewide Discover calendar
+        </p>
+        <button style={styles.addBtn} onClick={() => setShowForm((v) => !v)}>
+          + Add a go-live time
+        </button>
+        {error && <p style={styles.error}>{error}</p>}
+        {showForm && <ScheduleForm onCancel={() => setShowForm(false)} onSave={createEvent} />}
+        {upcoming.length === 0 ? (
+          <p style={styles.empty}>Nothing scheduled yet</p>
+        ) : (
+          <ul style={styles.list}>
+            {upcoming.map((e) => (
+              <li key={e.id} style={styles.row}>
+                <div>
+                  <p style={styles.name}>
+                    {e.title}
+                    {e.platform && <span style={styles.platformBadge}>{e.platform}</span>}
+                  </p>
+                  <p style={styles.submitter}>
+                    {new Date(e.startsAt).toLocaleString(undefined, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  {e.url && (
+                    <a style={styles.link} href={e.url} target="_blank" rel="noreferrer">
+                      {e.url}
+                    </a>
+                  )}
+                </div>
+                <button style={styles.rejectBtn} onClick={() => deleteEvent(e.id)}>
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {past.length > 0 && (
+        <section style={styles.section}>
+          <p style={styles.sectionLabel}>Past ({past.length})</p>
+          <ul style={styles.list}>
+            {past.slice(0, 10).map((e) => (
+              <li key={e.id} style={styles.row}>
+                <div>
+                  <p style={styles.name}>{e.title}</p>
+                  <p style={styles.submitter}>
+                    {new Date(e.startsAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <button style={styles.rejectBtn} onClick={() => deleteEvent(e.id)}>
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function ScheduleForm({ onCancel, onSave }) {
+  const [title, setTitle] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [url, setUrl] = useState("");
+
+  function submit(e) {
+    e.preventDefault();
+    if (!date || !time) return;
+    const startsAt = new Date(`${date}T${time}`).toISOString();
+    onSave({ title: title.trim(), platform: platform.trim(), startsAt, url: url.trim() });
+  }
+
+  return (
+    <form style={styles.offerForm} onSubmit={submit}>
+      <input
+        style={styles.input}
+        placeholder="Title (e.g. Friday queue night)"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <div style={styles.formRow}>
+        <input
+          style={styles.input}
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+        <input
+          style={styles.input}
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          required
+        />
+      </div>
+      <input
+        style={styles.input}
+        placeholder="Platform (e.g. Twitch, TikTok, YouTube)"
+        value={platform}
+        onChange={(e) => setPlatform(e.target.value)}
+      />
+      <input
+        style={styles.input}
+        placeholder="Stream link (optional)"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+      />
+      <div style={styles.formRow}>
+        <button style={styles.saveBtn} type="submit">
+          Save
+        </button>
+        <button style={styles.cancelBtn} type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function RadioRecommendations() {
+  const [recs, setRecs] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/radio-recommendations")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setRecs);
+  }, []);
+
+  return (
+    <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>
+          Songs recommended for radio ({recs.length}) — each person gets an automatic email
+          pointing them to Connect Diva Media's radio submission page
+        </p>
+        {recs.length === 0 ? (
+          <p style={styles.empty}>
+            Nothing yet — use the "Recommend for radio" button on a submission in the Queue tab
+          </p>
+        ) : (
+          <ul style={styles.list}>
+            {recs.map((r) => (
+              <li key={r.id} style={styles.row}>
+                <div>
+                  <p style={styles.name}>{r.songName || "(no song name)"}</p>
+                  <p style={styles.submitter}>
+                    {r.name}
+                    {r.email && ` · ${r.email}`}
+                  </p>
+                  <p style={styles.submitter}>
+                    {new Date(r.createdAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                {r.emailSent ? (
+                  <span style={styles.radioSentTag}>Email sent</span>
+                ) : (
+                  <span style={{ ...styles.radioSentTag, color: "var(--text-dim)", borderColor: "var(--line)" }}>
+                    No email on file
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 const styles = {
   linkList: {
     display: "flex",
@@ -1617,5 +1911,24 @@ const styles = {
     padding: "5px 8px",
     borderRadius: "var(--radius-sm)",
     flex: 1,
+  },
+  radioBtn: {
+    background: "transparent",
+    border: "1px solid var(--purple)",
+    color: "var(--purple)",
+    fontWeight: 600,
+    padding: "8px 14px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
+  },
+  radioSentTag: {
+    fontSize: "0.72rem",
+    fontWeight: 600,
+    color: "var(--purple)",
+    border: "1px solid var(--purple)",
+    padding: "6px 10px",
+    borderRadius: "var(--radius-sm)",
+    whiteSpace: "nowrap",
   },
 };

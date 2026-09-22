@@ -2,6 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { hashPassword } from "../../../lib/auth";
 import { fanSessionCookie } from "../../../lib/fanAuth";
 import { rateLimited } from "../../../lib/rateLimit";
+import { linkedHostCookieIfExists } from "../../../lib/accountLink";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -35,6 +36,7 @@ export default async function handler(req, res) {
     },
   });
 
-  res.setHeader("Set-Cookie", fanSessionCookie(fan.id));
+  const hostCookie = await linkedHostCookieIfExists(fan);
+  res.setHeader("Set-Cookie", hostCookie ? [fanSessionCookie(fan.id), hostCookie] : fanSessionCookie(fan.id));
   return res.status(201).json({ ok: true, name: fan.name });
 }

@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { verifyPassword, sessionCookie } from "../../lib/auth";
 import { rateLimited } from "../../lib/rateLimit";
+import { ensureLinkedFanCookie } from "../../lib/accountLink";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -20,6 +21,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Wrong email or password." });
   }
 
-  res.setHeader("Set-Cookie", sessionCookie(host.id));
+  // Also log them into the fan side under the same email, so switching
+  // between the creator and fan parts of the site doesn't ask for another
+  // sign-in.
+  const fanCookie = await ensureLinkedFanCookie(host);
+  res.setHeader("Set-Cookie", [sessionCookie(host.id), fanCookie]);
   return res.status(200).json({ ok: true, slug: host.slug });
 }
