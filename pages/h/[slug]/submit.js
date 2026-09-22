@@ -344,6 +344,15 @@ export default function Submit() {
         <title>Submit a track — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <div style={styles.miniBanner}>
+          <div style={styles.miniBannerRule}>
+            <div style={{ ...styles.miniRuleLine, background: "linear-gradient(90deg, transparent, var(--cyan))" }} />
+            <div style={{ ...styles.miniRuleLine, background: "linear-gradient(90deg, var(--purple), transparent)" }} />
+          </div>
+          <div className="glow-text" style={styles.miniBannerWord}>
+            A-TEAM
+          </div>
+        </div>
         <form style={styles.card} onSubmit={handleSubmit}>
           <h1 style={styles.title}>Submit a track</h1>
           <p style={styles.sub}>
@@ -521,9 +530,32 @@ const styles = {
   main: {
     minHeight: "100vh",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     padding: "24px",
+  },
+  miniBanner: {
+    width: "100%",
+    maxWidth: 440,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  miniBannerRule: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  miniRuleLine: {
+    flex: 1,
+    height: 1,
+  },
+  miniBannerWord: {
+    fontFamily: "var(--font-head)",
+    fontWeight: 800,
+    fontSize: "1.1rem",
+    letterSpacing: "0.06em",
   },
   card: {
     width: "100%",
