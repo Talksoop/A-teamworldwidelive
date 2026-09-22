@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import SiteNav from "../../../lib/SiteNav";
 import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 export default function QueueView() {
@@ -42,6 +43,7 @@ export default function QueueView() {
       <Head>
         <title>Queue — {slug}</title>
       </Head>
+      <SiteNav slug={slug} />
       <main style={styles.main}>
         <div style={styles.headerRow}>
           <h1 style={styles.title}>Queue</h1>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import SiteNav from "../../../../lib/SiteNav";
 
 function formatPrice(cents) {
   return `$${(cents / 100).toFixed(2)}`;
@@ -66,6 +67,7 @@ export default function Ama() {
       <Head>
         <title>Private request — A-Team Worldwide Live</title>
       </Head>
+      <SiteNav slug={slug} />
       <main style={styles.main}>
         <div style={styles.miniBanner}>
           <div style={styles.miniBannerRule}>

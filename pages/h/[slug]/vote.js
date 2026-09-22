@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import SiteNav from "../../../lib/SiteNav";
 import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 export default function Vote() {
@@ -66,6 +67,7 @@ export default function Vote() {
       <Head>
         <title>Vote — A-Team Worldwide Live</title>
       </Head>
+      <SiteNav slug={slug} />
       <main style={styles.main}>
         {battle === undefined && <p style={styles.idle}>Loading…</p>}
 

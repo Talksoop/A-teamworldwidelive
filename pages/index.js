@@ -7,22 +7,51 @@ export default function Home() {
         <title>A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
-        <div style={styles.badge} aria-hidden="true">
-          <span style={styles.badgeStar}>★</span>
+        <div style={styles.bannerRule}>
+          <div style={{ ...styles.ruleLine, background: "linear-gradient(90deg, transparent, var(--cyan))" }} />
+          <div style={{ ...styles.ruleLine, background: "linear-gradient(90deg, var(--purple), transparent)" }} />
         </div>
-        <h1 style={styles.title}>
-          <span className="glow-text">A-TEAM</span>
-          <span style={styles.titleSub}>WORLD WIDE LIVE</span>
+        <h1 className="glow-text" style={styles.title}>
+          A-TEAM
         </h1>
-        <p style={styles.sub}>Run live song review sessions with paid skip-the-line tiers, battles, and more.</p>
-        <div style={styles.links}>
-          <a href="/signup" style={styles.primaryBtn}>
-            Start your channel
-          </a>
-          <a href="/login" style={styles.secondaryLink}>
-            Log in
-          </a>
-        </div>
+        <p style={styles.tag}>WORLD WIDE LIVE</p>
+        <p style={styles.sub}>Live song reviews, battles, and private requests — pick how you want in.</p>
+
+        <a href="/discover" style={styles.card}>
+          <div style={styles.cardTop}>
+            <h2 style={styles.cardTitle}>I'm a fan</h2>
+            <span style={{ ...styles.badge, ...styles.badgeCyan }}>FAN</span>
+          </div>
+          <p style={styles.cardDesc}>
+            Follow creators, submit tracks, vote on battles, and see your history in one place.
+          </p>
+          <div style={styles.ctaRow}>
+            <a href="/fan/signup" style={{ ...styles.cta, ...styles.ctaGrad }}>
+              Sign up
+            </a>
+            <a href="/fan/login" style={{ ...styles.cta, ...styles.ctaOutline }}>
+              Log in
+            </a>
+          </div>
+        </a>
+
+        <a href="/signup" style={styles.card}>
+          <div style={styles.cardTop}>
+            <h2 style={styles.cardTitle}>I'm a creator</h2>
+            <span style={{ ...styles.badge, ...styles.badgePurple }}>CREATOR</span>
+          </div>
+          <p style={styles.cardDesc}>
+            Run your own live queue, skip tiers, battles, and private requests — free to start.
+          </p>
+          <div style={styles.ctaRow}>
+            <a href="/signup" style={{ ...styles.cta, ...styles.ctaGrad }}>
+              Start your channel
+            </a>
+            <a href="/login" style={{ ...styles.cta, ...styles.ctaOutline }}>
+              Log in
+            </a>
+          </div>
+        </a>
       </main>
     </>
   );
@@ -30,74 +59,108 @@ export default function Home() {
 
 const styles = {
   main: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px",
+    maxWidth: 460,
+    margin: "0 auto",
+    padding: "40px 20px 60px",
     textAlign: "center",
   },
-  badge: {
-    width: 64,
-    height: 64,
-    borderRadius: "50%",
-    border: "2px solid var(--cyan)",
-    boxShadow: "var(--glow-cyan), inset 0 0 14px rgba(155,107,255,0.35)",
+  bannerRule: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 8,
   },
-  badgeStar: {
-    color: "var(--cyan)",
-    fontSize: "1.6rem",
-    filter: "drop-shadow(0 0 6px rgba(79,216,245,0.8))",
+  ruleLine: {
+    flex: 1,
+    height: 1,
   },
   title: {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
-    fontSize: "clamp(2.2rem, 9vw, 3.6rem)",
+    fontSize: "clamp(2.2rem, 9vw, 3rem)",
     margin: 0,
     letterSpacing: "0.03em",
-    lineHeight: 1.15,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
   },
-  titleSub: {
-    fontSize: "0.32em",
+  tag: {
+    fontSize: "0.78rem",
+    letterSpacing: "0.2em",
     color: "var(--text-dim)",
-    letterSpacing: "0.35em",
-    marginTop: 6,
+    margin: "6px 0 0",
   },
   sub: {
     color: "var(--text-dim)",
-    fontSize: "1.05rem",
-    marginTop: 20,
-    marginBottom: 40,
-    maxWidth: 380,
+    fontSize: "1rem",
+    margin: "18px 0 32px",
   },
-  links: {
+  card: {
+    display: "block",
+    background: "var(--panel)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius-md)",
+    boxShadow: "var(--shadow-md)",
+    padding: 22,
+    marginBottom: 16,
+    textAlign: "left",
+    textDecoration: "none",
+    color: "var(--text)",
+  },
+  cardTop: {
     display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
   },
-  primaryBtn: {
+  cardTitle: {
+    fontSize: "1.15rem",
+    fontWeight: 700,
+    margin: 0,
+  },
+  badge: {
+    fontSize: "0.66rem",
+    fontWeight: 700,
+    padding: "5px 11px",
+    borderRadius: 100,
+    whiteSpace: "nowrap",
+  },
+  badgeCyan: {
+    background: "rgba(79,216,245,0.12)",
+    color: "var(--cyan)",
+    border: "1px solid rgba(79,216,245,0.35)",
+  },
+  badgePurple: {
+    background: "rgba(155,107,255,0.12)",
+    color: "var(--purple)",
+    border: "1px solid rgba(155,107,255,0.35)",
+  },
+  cardDesc: {
+    color: "var(--text-dim)",
+    fontSize: "0.9rem",
+    margin: "0 0 18px",
+    lineHeight: 1.4,
+  },
+  ctaRow: {
+    display: "flex",
+    gap: 10,
+  },
+  cta: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px",
+    borderRadius: "var(--radius-sm)",
+    fontWeight: 700,
+    fontSize: "0.85rem",
+    textDecoration: "none",
+    textAlign: "center",
+  },
+  ctaGrad: {
     background: "var(--gradient)",
     color: "#05060e",
-    fontWeight: 700,
-    padding: "14px 32px",
-    borderRadius: 8,
-    textDecoration: "none",
-    fontSize: "1rem",
-    boxShadow: "var(--glow-purple)",
   },
-  secondaryLink: {
+  ctaOutline: {
+    background: "transparent",
+    border: "1px solid var(--line)",
     color: "var(--text-dim)",
-    textDecoration: "underline",
-    textUnderlineOffset: 4,
-    fontSize: "0.95rem",
   },
 };

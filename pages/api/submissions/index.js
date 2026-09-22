@@ -5,6 +5,7 @@ import { attachPlayUrls } from "../../../lib/s3";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 import { rateLimited } from "../../../lib/rateLimit";
 import { notifyHostNewSubmission } from "../../../lib/notifications";
+import { getSessionFanId } from "../../../lib/fanAuth";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
     const submission = await prisma.submission.create({
       data: {
         hostId: host.id,
+        fanId: getSessionFanId(req),
         name: name.trim(),
         email: email ? email.trim() : null,
         songName: songName.trim(),

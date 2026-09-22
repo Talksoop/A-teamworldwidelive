@@ -5,6 +5,7 @@ import { getSessionHostId } from "../../lib/auth";
 import { getHostBySlug } from "../../lib/host";
 import { rateLimited } from "../../lib/rateLimit";
 import { notifyHostNewAma } from "../../lib/notifications";
+import { getSessionFanId } from "../../lib/fanAuth";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       const created = await prisma.amaRequest.create({
         data: {
           hostId: host.id,
+          fanId: getSessionFanId(req),
           name: name.trim(),
           email: email ? email.trim() : null,
           question: question.trim(),
@@ -70,6 +72,7 @@ export default async function handler(req, res) {
     const request = await prisma.amaRequest.create({
       data: {
         hostId: host.id,
+        fanId: getSessionFanId(req),
         name: name.trim(),
         email: email ? email.trim() : null,
         question: question.trim(),

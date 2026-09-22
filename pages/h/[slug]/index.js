@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import SiteNav from "../../../lib/SiteNav";
 
 export default function HostHome() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function HostHome() {
       <Head>
         <title>{host ? host.name : "Live Queue"}</title>
       </Head>
+      <SiteNav slug={slug} />
       <main style={styles.main}>
         <div style={styles.banner}>
           <div style={styles.bannerRule}>

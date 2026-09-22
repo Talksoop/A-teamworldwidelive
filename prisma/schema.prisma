@@ -20,9 +20,27 @@ model Host {
   createdAt       DateTime @default(now())
 }
 
+model Fan {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Follow {
+  id        String   @id @default(cuid())
+  fanId     String
+  hostId    String
+  createdAt DateTime @default(now())
+
+  @@unique([fanId, hostId])
+}
+
 model Submission {
   id                 String   @id @default(cuid())
   hostId             String
+  fanId              String?
   name               String
   email              String?
   songName           String?
@@ -77,6 +95,7 @@ model Settings {
 model AmaRequest {
   id                 String    @id @default(cuid())
   hostId             String
+  fanId              String?
   name               String
   email              String?
   question           String
