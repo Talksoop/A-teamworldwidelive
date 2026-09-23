@@ -3,6 +3,7 @@ import Head from "next/head";
 import { getSessionHostId } from "../lib/auth";
 import { useQueueSocket } from "../lib/useQueueSocket";
 import { parseLink, PLATFORM_LABELS } from "../lib/linkParse";
+import { useStableBy } from "../lib/useStableValue";
 
 export async function getServerSideProps({ req }) {
   if (!getSessionHostId(req)) {
@@ -27,12 +28,18 @@ function PlatformBadge({ link }) {
 // else falls back to a plain "open it" prompt — remote pages we don't
 // control can't be forced to play inline.
 function NowPlayingPlayer({ submission }) {
+  // Uploaded files get a freshly re-signed S3 URL on every poll even though
+  // the file hasn't changed; freezing it per submission id stops the
+  // <audio>/<video> element from reloading (and restarting playback) each
+  // time the queue refreshes in the background.
+  const stablePlayUrl = useStableBy(submission.id, submission.playUrl);
+
   if (submission.sourceType === "UPLOAD" && submission.playUrl) {
     const isVideo = submission.link.endsWith(".mp4");
     return isVideo ? (
-      <video key={submission.id} style={styles.player} src={submission.playUrl} controls autoPlay />
+      <video key={submission.id} style={styles.player} src={stablePlayUrl} controls autoPlay />
     ) : (
-      <audio key={submission.id} style={styles.player} src={submission.playUrl} controls autoPlay />
+      <audio key={submission.id} style={styles.player} src={stablePlayUrl} controls autoPlay />
     );
   }
   const { embedUrl } = parseLink(submission.link);

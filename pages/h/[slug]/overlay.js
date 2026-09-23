@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import { useQueueSocket } from "../../../lib/useQueueSocket";
 import { parseLink } from "../../../lib/linkParse";
+import { useStableBy } from "../../../lib/useStableValue";
 
 export default function Overlay() {
   const router = useRouter();
@@ -49,6 +50,13 @@ export default function Overlay() {
   const battleTotal = battle ? battle.votesA + battle.votesB : 0;
   const battlePctA = battleTotal > 0 ? Math.round((battle.votesA / battleTotal) * 100) : 50;
 
+  // attachPlayUrls() re-signs the same S3 file on every fetch, so the
+  // fallback poll (and any "queue-updated" broadcast) hands back a new but
+  // equally valid URL for whatever's already playing. Freezing it per
+  // submission id keeps the <audio>/<video>/analyser from reloading — and
+  // restarting the track from zero — every time this page polls.
+  const stablePlayUrl = useStableBy(data.playing?.id, data.playing?.playUrl);
+
   return (
     <>
       <Head>
@@ -90,7 +98,7 @@ export default function Overlay() {
                 </div>
               </div>
               {data.playing.sourceType === "UPLOAD" ? (
-                <Waveform key={data.playing.id} src={data.playing.playUrl} />
+                <Waveform key={data.playing.id} src={stablePlayUrl} />
               ) : (
                 <div className="visualizer" aria-hidden="true">
                   <span></span>
@@ -109,7 +117,7 @@ export default function Overlay() {
                     <video
                       key={data.playing.id}
                       style={styles.player}
-                      src={data.playing.playUrl}
+                      src={stablePlayUrl}
                       controls
                       autoPlay
                     />
@@ -117,7 +125,7 @@ export default function Overlay() {
                     <audio
                       key={data.playing.id}
                       style={styles.player}
-                      src={data.playing.playUrl}
+                      src={stablePlayUrl}
                       controls
                       autoPlay
                     />
