@@ -85,9 +85,10 @@ export default async function handler(req, res) {
   };
 
   if (totalCents === 0) {
-    // Nothing to charge: create it straight into the normal review queue.
+    // Nothing to charge: drop it straight into the queue if the host has
+    // auto-approve on, otherwise hold it for manual review like before.
     const submission = await prisma.submission.create({
-      data: { ...data, status: "PENDING", paid: false },
+      data: { ...data, status: settings.autoApprove ? "QUEUED" : "PENDING", paid: false },
     });
     broadcastQueueUpdate(host.id);
     notifyHostNewSubmission(host, submission);

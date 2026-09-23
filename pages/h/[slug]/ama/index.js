@@ -65,12 +65,23 @@ export default function Ama() {
 
   if (settings && !settings.amaEnabled) {
     return (
-      <main style={styles.main}>
-        <div style={styles.card}>
-          <h1 style={styles.title}>Not open right now</h1>
-          <p style={styles.sub}>Private requests aren't being accepted at the moment.</p>
-        </div>
-      </main>
+      <>
+        <Head>
+          <title>Private request — A-Team Worldwide Live</title>
+        </Head>
+        <SiteNav slug={slug} />
+        <main style={styles.main}>
+          <div style={styles.card}>
+            <h1 style={styles.title}>Not open right now</h1>
+            <p style={styles.sub}>Private requests aren't being accepted at the moment.</p>
+            <div style={styles.doneBtns}>
+              <a style={styles.secondaryBtn} href={`/h/${slug}`}>
+                Back to channel
+              </a>
+            </div>
+          </div>
+        </main>
+      </>
     );
   }
 
@@ -250,5 +261,22 @@ const styles = {
     fontSize: "0.95rem",
     marginTop: 4,
     boxShadow: "var(--glow-purple)",
+  },
+  doneBtns: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    marginTop: 4,
+  },
+  secondaryBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text)",
+    fontWeight: 500,
+    padding: "10px 20px",
+    borderRadius: 8,
+    fontSize: "0.9rem",
+    textDecoration: "none",
+    textAlign: "center",
   },
 };

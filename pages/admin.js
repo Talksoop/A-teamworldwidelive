@@ -21,6 +21,35 @@ function PlatformBadge({ link }) {
   return <span style={styles.platformBadge}>{PLATFORM_LABELS[platform]}</span>;
 }
 
+// Actually plays the track right on the queue tab instead of leaving it as
+// just a link to click: our own uploads play inline, and platforms we can
+// embed (YouTube/Spotify/SoundCloud/TikTok) autoplay in an iframe. Anything
+// else falls back to a plain "open it" prompt — remote pages we don't
+// control can't be forced to play inline.
+function NowPlayingPlayer({ submission }) {
+  if (submission.sourceType === "UPLOAD" && submission.playUrl) {
+    const isVideo = submission.link.endsWith(".mp4");
+    return isVideo ? (
+      <video key={submission.id} style={styles.player} src={submission.playUrl} controls autoPlay />
+    ) : (
+      <audio key={submission.id} style={styles.player} src={submission.playUrl} controls autoPlay />
+    );
+  }
+  const { embedUrl } = parseLink(submission.link);
+  if (embedUrl) {
+    return (
+      <iframe
+        key={submission.id}
+        style={styles.embedFrame}
+        src={embedUrl}
+        allow="autoplay; encrypted-media"
+        frameBorder="0"
+      />
+    );
+  }
+  return null;
+}
+
 export default function Admin() {
   const [tab, setTab] = useState("queue");
   const [submissions, setSubmissions] = useState([]);
@@ -75,6 +104,21 @@ export default function Admin() {
       return;
     }
     load();
+  }
+
+  function playSubmission(s) {
+    // Our own uploads and embeddable platforms (YouTube/Spotify/SoundCloud/
+    // TikTok) play inline once they're marked PLAYING — see
+    // NowPlayingPlayer. Anything else (Instagram, a plain link, etc.) can't
+    // be embedded, so open it in a new tab right here, synchronously in the
+    // click handler, so the browser doesn't block it as a popup.
+    if (s.sourceType !== "UPLOAD") {
+      const { embedUrl } = parseLink(s.link);
+      if (!embedUrl) {
+        window.open(s.playUrl || s.link, "_blank", "noopener,noreferrer");
+      }
+    }
+    updateStatus(s.id, "PLAYING");
   }
 
   async function recommendForRadio(id) {
@@ -218,6 +262,7 @@ export default function Admin() {
                       {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
                     </a>
                     {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
+                    <NowPlayingPlayer submission={playing} />
                   </div>
                   <div style={styles.rowBtns}>
                     {radioRecommendedIds.has(playing.id) ? (
@@ -279,7 +324,7 @@ export default function Admin() {
                             Radio
                           </button>
                         )}
-                        <button style={styles.playBtn} onClick={() => updateStatus(s.id, "PLAYING")}>
+                        <button style={styles.playBtn} onClick={() => playSubmission(s)}>
                           Play
                         </button>
                       </div>
@@ -401,6 +446,17 @@ function PricingAndOffers() {
     load();
   }
 
+  async function setAutoApprove(auto) {
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoApprove: auto }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
   async function saveBasePrice() {
     const cents = Math.round(parseFloat(basePriceInput || "0") * 100);
     if (Number.isNaN(cents) || cents < 0) {
@@ -491,6 +547,31 @@ function PricingAndOffers() {
           {settings.queueOpen
             ? "Fans can submit tracks right now. Anything already in the queue keeps playing either way."
             : "New submissions are paused — fans see a \"closed\" message instead of the submit form. Toggle back to Open any time; it takes effect immediately."}
+        </p>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>New submissions</p>
+        <div style={styles.modeToggle}>
+          <button
+            style={!settings.autoApprove ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setAutoApprove(false)}
+            disabled={savingSettings}
+          >
+            Manual approval
+          </button>
+          <button
+            style={settings.autoApprove ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setAutoApprove(true)}
+            disabled={savingSettings}
+          >
+            Automatic
+          </button>
+        </div>
+        <p style={styles.hint}>
+          {settings.autoApprove
+            ? "Free submissions drop straight into the queue — no \"Pending review\" step. Paid submissions have always skipped review once payment clears."
+            : "Free submissions land in Pending review first, so you approve or reject before they hit the queue. Paid submissions still skip straight into the queue once payment clears — that's not affected by this."}
         </p>
       </section>
 
@@ -1840,6 +1921,20 @@ const styles = {
     fontSize: "0.85rem",
     color: "var(--text-dim)",
     margin: "6px 0 0",
+  },
+  player: {
+    width: "100%",
+    maxHeight: 220,
+    marginTop: 10,
+    display: "block",
+  },
+  embedFrame: {
+    width: "100%",
+    height: 152,
+    border: "none",
+    borderRadius: 8,
+    marginTop: 10,
+    display: "block",
   },
   playBtn: {
     background: "var(--gradient)",

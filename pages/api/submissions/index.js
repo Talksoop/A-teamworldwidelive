@@ -50,6 +50,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "One of the fields is too long." });
     }
 
+    const settings = await prisma.settings.upsert({
+      where: { hostId: host.id },
+      update: {},
+      create: { hostId: host.id },
+    });
+    if (!settings.queueOpen) {
+      return res.status(400).json({ error: "This channel isn't taking submissions right now." });
+    }
+
     const submission = await prisma.submission.create({
       data: {
         hostId: host.id,
@@ -60,7 +69,7 @@ export default async function handler(req, res) {
         message: message ? message.trim() : null,
         link: link.trim(),
         sourceType: isUpload ? "UPLOAD" : "LINK",
-        status: "PENDING",
+        status: settings.autoApprove ? "QUEUED" : "PENDING",
       },
     });
     broadcastQueueUpdate(host.id);

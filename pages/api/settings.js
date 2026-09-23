@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
-    const { submissionMode, basePriceCents, queueOpen } = req.body || {};
+    const { submissionMode, basePriceCents, queueOpen, autoApprove } = req.body || {};
     if (submissionMode && !["FREE", "PAID"].includes(submissionMode)) {
       return res.status(400).json({ error: "Invalid submissionMode." });
     }
@@ -51,6 +51,9 @@ export default async function handler(req, res) {
     if (typeof queueOpen !== "undefined" && typeof queueOpen !== "boolean") {
       return res.status(400).json({ error: "queueOpen must be true or false." });
     }
+    if (typeof autoApprove !== "undefined" && typeof autoApprove !== "boolean") {
+      return res.status(400).json({ error: "autoApprove must be true or false." });
+    }
     await getOrCreateSettings(hostId);
     const updated = await prisma.settings.update({
       where: { hostId },
@@ -58,6 +61,7 @@ export default async function handler(req, res) {
         ...(submissionMode ? { submissionMode } : {}),
         ...(typeof basePriceCents !== "undefined" ? { basePriceCents } : {}),
         ...(typeof queueOpen !== "undefined" ? { queueOpen } : {}),
+        ...(typeof autoApprove !== "undefined" ? { autoApprove } : {}),
       },
     });
     // Push to any fan submit/channel page that's already open so pricing,

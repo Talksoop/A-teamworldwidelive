@@ -93,6 +93,7 @@ model Settings {
   amaEnabled     Boolean @default(false)
   amaPriceCents  Int     @default(1000)
   queueOpen      Boolean @default(true) // false = closed to new submissions; existing queue is untouched
+  autoApprove    Boolean @default(false) // true = free submissions drop straight into the queue, skipping "Pending review"
 }
 
 model LiveEvent {
