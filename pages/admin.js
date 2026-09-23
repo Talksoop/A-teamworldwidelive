@@ -1942,7 +1942,10 @@ const styles = {
     margin: 0,
   },
   playingCard: {
-    background: "linear-gradient(180deg, var(--panel-raised), var(--panel))",
+    backgroundImage:
+      "linear-gradient(180deg, rgba(20,24,48,0.88), rgba(12,15,28,0.94)), url(/logo.jpg)",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
     border: "1px solid var(--purple)",
     boxShadow: "var(--glow-purple), var(--shadow-md)",
     borderRadius: "var(--radius-md)",
