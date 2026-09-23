@@ -27,12 +27,16 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [dragId, setDragId] = useState(null);
   const [me, setMe] = useState(null);
+  const [fanLinked, setFanLinked] = useState(false);
   const [radioRecommendedIds, setRadioRecommendedIds] = useState(new Set());
 
   useEffect(() => {
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
       .then(setMe);
+    fetch("/api/fan/me")
+      .then((r) => setFanLinked(r.ok))
+      .catch(() => setFanLinked(false));
   }, []);
 
   const load = useCallback(async () => {
@@ -131,7 +135,14 @@ export default function Admin() {
         <title>Admin — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
-        <h1 style={styles.title}>Admin</h1>
+        <div style={styles.headerRow}>
+          <h1 style={styles.title}>Admin</h1>
+          {fanLinked && (
+            <a href="/discover" style={styles.switchBtn}>
+              Switch to Fan mode
+            </a>
+          )}
+        </div>
         <div style={styles.tabs}>
           <button
             style={tab === "queue" ? styles.tabActive : styles.tab}
@@ -1603,12 +1614,31 @@ const styles = {
     margin: "0 auto",
     padding: "28px 20px 80px",
   },
+  headerRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 20,
+  },
   title: {
     fontFamily: "var(--font-head)",
     fontWeight: 800,
     fontSize: "1.8rem",
     letterSpacing: "0.01em",
-    margin: "0 0 20px",
+    margin: 0,
+  },
+  switchBtn: {
+    background: "transparent",
+    border: "1px solid var(--purple)",
+    color: "var(--purple)",
+    fontWeight: 700,
+    fontSize: "0.8rem",
+    padding: "7px 12px",
+    borderRadius: "var(--radius-sm)",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
   },
   tabs: {
     display: "flex",
