@@ -58,6 +58,7 @@ model Submission {
   parentSubmissionId String? // set on a free bonus song attached to a paid tier that allows extra songs
   stripeSessionId    String?  @unique
   createdAt          DateTime @default(now())
+  playedAt           DateTime? // set when status transitions to DONE, so "already played" can be ordered by actual play time
 }
 
 model Offer {

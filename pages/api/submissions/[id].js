@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     if (status === "PLAYING") {
       await prisma.submission.updateMany({
         where: { hostId, status: "PLAYING" },
-        data: { status: "DONE" },
+        data: { status: "DONE", playedAt: new Date() },
       });
     }
 
@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       where: { id },
       data: {
         ...(status ? { status } : {}),
+        ...(status === "DONE" ? { playedAt: new Date() } : {}),
         ...(typeof order === "number" ? { order } : {}),
       },
     });

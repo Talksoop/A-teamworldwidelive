@@ -144,9 +144,22 @@ export default function Admin() {
     loadRadioRecommended();
   }
 
+  async function deleteSubmission(id) {
+    setError("");
+    const res = await fetch(`/api/submissions/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError("Couldn't remove that. Try again.");
+      return;
+    }
+    load();
+  }
+
   const pending = submissions.filter((s) => s.status === "PENDING");
   const queued = submissions.filter((s) => s.status === "QUEUED");
   const playing = submissions.find((s) => s.status === "PLAYING");
+  const played = submissions
+    .filter((s) => s.status === "DONE")
+    .sort((a, b) => new Date(b.playedAt || b.createdAt) - new Date(a.playedAt || a.createdAt));
 
   function handleDrop(targetId) {
     if (!dragId || dragId === targetId) {
@@ -207,6 +220,12 @@ export default function Admin() {
             onClick={() => setTab("queue")}
           >
             Queue
+          </button>
+          <button
+            style={tab === "played" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("played")}
+          >
+            Played ({played.length})
           </button>
           <button
             style={tab === "pricing" ? styles.tabActive : styles.tab}
@@ -386,6 +405,42 @@ export default function Admin() {
               )}
             </section>
           </>
+        ) : tab === "played" ? (
+          <section style={styles.section}>
+            <p style={styles.sectionLabel}>Already played ({played.length})</p>
+            {played.length === 0 ? (
+              <p style={styles.empty}>Nothing's played yet this session.</p>
+            ) : (
+              <ul style={styles.list}>
+                {played.map((s) => (
+                  <li key={s.id} style={styles.row}>
+                    <div>
+                      <p style={styles.name}>{s.songName || "(no song name)"}</p>
+                      <p style={styles.submitter}>
+                        {s.name}
+                        {s.email && ` · ${s.email}`}
+                      </p>
+                    </div>
+                    <div style={styles.rowBtns}>
+                      <button style={styles.playBtn} onClick={() => playSubmission(s)}>
+                        Play again
+                      </button>
+                      <button
+                        style={styles.rejectBtn}
+                        onClick={() => {
+                          if (window.confirm("Remove this from the queue for good?")) {
+                            deleteSubmission(s.id);
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         ) : tab === "pricing" ? (
           <PricingAndOffers />
         ) : tab === "battles" ? (
