@@ -136,7 +136,14 @@ export default function Admin() {
       </Head>
       <main style={styles.main}>
         <div style={styles.headerRow}>
-          <h1 style={styles.title}>Admin</h1>
+          <div>
+            <h1 style={styles.title}>Admin</h1>
+            {me && (
+              <p style={styles.channelSub}>
+                Editing <strong>{me.name}</strong> · /h/{me.slug} · {me.email}
+              </p>
+            )}
+          </div>
           {fanLinked && (
             <a href="/discover" style={styles.switchBtn}>
               Switch to Fan mode
@@ -1663,6 +1670,11 @@ const styles = {
     fontSize: "1.8rem",
     letterSpacing: "0.01em",
     margin: 0,
+  },
+  channelSub: {
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    margin: "4px 0 0",
   },
   switchBtn: {
     background: "transparent",
