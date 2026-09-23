@@ -403,6 +403,7 @@ function PricingAndOffers() {
   const [settings, setSettings] = useState(null);
   const [offers, setOffers] = useState([]);
   const [basePriceInput, setBasePriceInput] = useState("0");
+  const [freeLimitInput, setFreeLimitInput] = useState("0");
   const [savingSettings, setSavingSettings] = useState(false);
   const [showSkipForm, setShowSkipForm] = useState(false);
   const [showReactForm, setShowReactForm] = useState(false);
@@ -417,12 +418,17 @@ function PricingAndOffers() {
     const s = await settingsRes.json();
     setSettings(s);
     setBasePriceInput((s.basePriceCents / 100).toFixed(2));
+    setFreeLimitInput(String(s.freeSubmissionLimit));
     setOffers(await offersRes.json());
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Fans claiming a free slot tick the counter up server-side; reflect that
+  // here live instead of only on the next manual reload.
+  useQueueSocket(settings?.hostId, load, "settings-updated");
 
   async function setMode(mode) {
     setSavingSettings(true);
@@ -468,6 +474,33 @@ function PricingAndOffers() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ basePriceCents: cents }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
+  async function saveFreeLimit() {
+    const n = parseInt(freeLimitInput || "0", 10);
+    if (!Number.isInteger(n) || n < 0) {
+      setError("Enter a valid number.");
+      return;
+    }
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ freeSubmissionLimit: n }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
+  async function resetFreeCount() {
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resetFreeCount: true }),
     });
     setSavingSettings(false);
     load();
@@ -607,6 +640,38 @@ function PricingAndOffers() {
             <button style={styles.saveBtn} onClick={saveBasePrice} disabled={savingSettings}>
               Save
             </button>
+          </div>
+        )}
+        {settings.submissionMode === "PAID" && (
+          <div style={styles.freeQuotaBox}>
+            <p style={styles.hint}>
+              Free submissions before the price above kicks in (0 = always charge). Resets
+              automatically whenever you reopen the queue after closing it.
+            </p>
+            <div style={styles.priceRow}>
+              <input
+                style={styles.priceInput}
+                type="number"
+                min="0"
+                step="1"
+                value={freeLimitInput}
+                onChange={(e) => setFreeLimitInput(e.target.value)}
+              />
+              <button style={styles.saveBtn} onClick={saveFreeLimit} disabled={savingSettings}>
+                Save
+              </button>
+            </div>
+            {settings.freeSubmissionLimit > 0 && (
+              <div style={styles.freeQuotaStatus}>
+                <span>
+                  {Math.min(settings.freeSubmissionsUsed, settings.freeSubmissionLimit)} of{" "}
+                  {settings.freeSubmissionLimit} free submissions used this session
+                </span>
+                <button style={styles.linkBtn} onClick={resetFreeCount} disabled={savingSettings}>
+                  Reset count
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -2065,6 +2130,32 @@ const styles = {
     fontSize: "0.78rem",
     color: "var(--text-dim)",
     margin: 0,
+  },
+  freeQuotaBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTop: "1px solid var(--line)",
+  },
+  freeQuotaStatus: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    fontSize: "0.82rem",
+    color: "var(--text-dim)",
+  },
+  linkBtn: {
+    background: "transparent",
+    border: "none",
+    color: "var(--cyan)",
+    fontWeight: 600,
+    fontSize: "0.8rem",
+    textDecoration: "underline",
+    padding: 0,
+    whiteSpace: "nowrap",
   },
   offerGrid: {
     display: "grid",

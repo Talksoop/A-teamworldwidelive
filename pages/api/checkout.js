@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { getStripe } from "../../lib/stripe";
 import { getHostBySlug } from "../../lib/host";
-import { broadcastQueueUpdate } from "../../lib/realtime";
+import { broadcastQueueUpdate, broadcastSettingsUpdate } from "../../lib/realtime";
 import { rateLimited } from "../../lib/rateLimit";
 import { notifyHostNewSubmission } from "../../lib/notifications";
 import { getSessionFanId } from "../../lib/fanAuth";
@@ -67,7 +67,21 @@ export default async function handler(req, res) {
     }
   }
 
-  const basePriceCents = settings.submissionMode === "PAID" ? settings.basePriceCents : 0;
+  // A free-submission quota waives the base price for the first N
+  // submissions this session (since the queue last opened), not skip/react
+  // add-ons. Claimed atomically so two fans racing for the last free slot
+  // can't both get it.
+  let usedFreeSlot = false;
+  if (settings.submissionMode === "PAID" && settings.freeSubmissionLimit > 0) {
+    const claim = await prisma.settings.updateMany({
+      where: { hostId: host.id, freeSubmissionsUsed: { lt: settings.freeSubmissionLimit } },
+      data: { freeSubmissionsUsed: { increment: 1 } },
+    });
+    usedFreeSlot = claim.count > 0;
+    if (usedFreeSlot) broadcastSettingsUpdate(host.id);
+  }
+
+  const basePriceCents = settings.submissionMode === "PAID" && !usedFreeSlot ? settings.basePriceCents : 0;
   const totalCents = basePriceCents + (skipOffer?.priceCents || 0) + (reactOffer?.priceCents || 0);
 
   const data = {

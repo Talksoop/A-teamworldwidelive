@@ -38,7 +38,14 @@ export default async function handler(req, res) {
     if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
-    const { submissionMode, basePriceCents, queueOpen, autoApprove } = req.body || {};
+    const {
+      submissionMode,
+      basePriceCents,
+      queueOpen,
+      autoApprove,
+      freeSubmissionLimit,
+      resetFreeCount,
+    } = req.body || {};
     if (submissionMode && !["FREE", "PAID"].includes(submissionMode)) {
       return res.status(400).json({ error: "Invalid submissionMode." });
     }
@@ -54,7 +61,16 @@ export default async function handler(req, res) {
     if (typeof autoApprove !== "undefined" && typeof autoApprove !== "boolean") {
       return res.status(400).json({ error: "autoApprove must be true or false." });
     }
-    await getOrCreateSettings(hostId);
+    if (
+      typeof freeSubmissionLimit !== "undefined" &&
+      (!Number.isInteger(freeSubmissionLimit) || freeSubmissionLimit < 0)
+    ) {
+      return res.status(400).json({ error: "freeSubmissionLimit must be a non-negative integer." });
+    }
+    const current = await getOrCreateSettings(hostId);
+    // Opening a queue that was closed starts a fresh "session" for the free
+    // quota, same as an explicit reset.
+    const reopening = queueOpen === true && current.queueOpen === false;
     const updated = await prisma.settings.update({
       where: { hostId },
       data: {
@@ -62,6 +78,8 @@ export default async function handler(req, res) {
         ...(typeof basePriceCents !== "undefined" ? { basePriceCents } : {}),
         ...(typeof queueOpen !== "undefined" ? { queueOpen } : {}),
         ...(typeof autoApprove !== "undefined" ? { autoApprove } : {}),
+        ...(typeof freeSubmissionLimit !== "undefined" ? { freeSubmissionLimit } : {}),
+        ...(reopening || resetFreeCount ? { freeSubmissionsUsed: 0 } : {}),
       },
     });
     // Push to any fan submit/channel page that's already open so pricing,

@@ -94,6 +94,8 @@ model Settings {
   amaPriceCents  Int     @default(1000)
   queueOpen      Boolean @default(true) // false = closed to new submissions; existing queue is untouched
   autoApprove    Boolean @default(false) // true = free submissions drop straight into the queue, skipping "Pending review"
+  freeSubmissionLimit Int @default(0) // PAID mode only: 0 = off; otherwise the first N submissions this session waive the base price
+  freeSubmissionsUsed Int @default(0) // resets to 0 whenever the queue transitions closed -> open (a new "session")
 }
 
 model LiveEvent {

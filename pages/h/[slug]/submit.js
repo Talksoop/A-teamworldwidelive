@@ -103,7 +103,11 @@ export default function Submit() {
     }
   }, [router.isReady, router.query.paid, router.query.submission, router.query.canceled]);
 
-  const basePrice = settings?.submissionMode === "PAID" ? settings.basePriceCents : 0;
+  const freeSlotAvailable =
+    settings?.submissionMode === "PAID" &&
+    settings.freeSubmissionLimit > 0 &&
+    settings.freeSubmissionsUsed < settings.freeSubmissionLimit;
+  const basePrice = settings?.submissionMode === "PAID" && !freeSlotAvailable ? settings.basePriceCents : 0;
   const skipPrice = skipOffers.find((o) => o.id === skipOfferId)?.priceCents || 0;
   const reactPrice = reactOffers.find((o) => o.id === reactOfferId)?.priceCents || 0;
   const total = basePrice + skipPrice + reactPrice;
@@ -406,7 +410,9 @@ export default function Submit() {
         <form style={styles.card} onSubmit={handleSubmit}>
           <h1 style={styles.title}>Submit a track</h1>
           <p style={styles.sub}>
-            {basePrice > 0
+            {freeSlotAvailable
+              ? `Free entry right now (${settings.freeSubmissionLimit - settings.freeSubmissionsUsed} left this session) — normally ${formatPrice(settings.basePriceCents)}.`
+              : basePrice > 0
               ? `${formatPrice(basePrice)} to enter the queue. Add a skip or react offer below.`
               : "Paste a link. It goes straight into the review queue."}
           </p>
