@@ -1286,6 +1286,22 @@ function Channel({ me }) {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
 
+  const [followers, setFollowers] = useState(null);
+  const [followersError, setFollowersError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/followers")
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.error || "Couldn't load followers.");
+        }
+        return r.json();
+      })
+      .then(setFollowers)
+      .catch((e) => setFollowersError(e.message));
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -1368,6 +1384,39 @@ function Channel({ me }) {
             {origin}/h/{me.slug}/ama
           </a>
         </div>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>
+          Followers{followers ? ` (${followers.count})` : ""}
+        </p>
+        {followersError ? (
+          <p style={styles.error}>{followersError}</p>
+        ) : !followers ? null : followers.count === 0 ? (
+          <p style={styles.empty}>
+            No followers yet — fans can follow your channel from your public pages.
+          </p>
+        ) : (
+          <ul style={styles.list}>
+            {followers.followers.map((f) => (
+              <li key={f.id} style={styles.row}>
+                <div>
+                  <p style={styles.name}>{f.name || "(no name)"}</p>
+                  <p style={styles.submitter}>
+                    {f.email}
+                    {" · "}
+                    followed{" "}
+                    {new Date(f.followedAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section style={styles.section}>
