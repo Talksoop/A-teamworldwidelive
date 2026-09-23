@@ -52,6 +52,10 @@ export default function Home() {
             </a>
           </div>
         </a>
+
+        <a href="/terms" style={styles.termsLink}>
+          Terms of Service
+        </a>
       </main>
     </>
   );
@@ -162,5 +166,12 @@ const styles = {
     background: "transparent",
     border: "1px solid var(--line)",
     color: "var(--text-dim)",
+  },
+  termsLink: {
+    display: "inline-block",
+    marginTop: 22,
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    textDecoration: "underline",
   },
 };

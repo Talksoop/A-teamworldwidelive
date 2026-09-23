@@ -34,6 +34,23 @@ export default function FanAccount() {
     window.location.href = "/";
   }
 
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function deleteAccount() {
+    setDeleting(true);
+    setDeleteError("");
+    const res = await fetch("/api/fan/account", { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setDeleteError(d.error || "Couldn't delete your account.");
+      setDeleting(false);
+      return;
+    }
+    window.location.href = "/";
+  }
+
   if (checked && !fan) {
     return (
       <>
@@ -118,6 +135,29 @@ export default function FanAccount() {
         <button style={styles.logoutBtn} onClick={logout}>
           Log out
         </button>
+
+        <section style={{ ...styles.section, marginTop: 30 }}>
+          <p style={{ ...styles.sectionLabel, color: "var(--live)" }}>Danger zone</p>
+          <p style={styles.empty}>
+            Deletes your fan account — following list and your name/email on past submissions and
+            requests. This can't be undone. (This only affects your fan account; if you also have a
+            creator channel, that's separate and won't be deleted.)
+          </p>
+          <input
+            style={{ ...styles.input, marginBottom: 10 }}
+            placeholder='Type "delete" to confirm'
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+          />
+          {deleteError && <p style={styles.error}>{deleteError}</p>}
+          <button
+            style={styles.deleteBtn}
+            onClick={deleteAccount}
+            disabled={deleteConfirm.toLowerCase() !== "delete" || deleting}
+          >
+            {deleting ? "Deleting…" : "Delete my account"}
+          </button>
+        </section>
       </main>
     </>
   );
@@ -198,6 +238,30 @@ const styles = {
     color: "var(--text-dim)",
     fontWeight: 600,
     padding: "11px 20px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+  },
+  input: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius-sm)",
+    padding: "10px 12px",
+    color: "var(--text)",
+    fontSize: "0.9rem",
+    outline: "none",
+    width: "100%",
+  },
+  error: {
+    color: "var(--live)",
+    fontSize: "0.85rem",
+    margin: "0 0 10px",
+  },
+  deleteBtn: {
+    background: "transparent",
+    border: "1px solid var(--live)",
+    color: "var(--live)",
+    fontWeight: 700,
+    padding: "10px 18px",
     borderRadius: "var(--radius-sm)",
     fontSize: "0.85rem",
   },

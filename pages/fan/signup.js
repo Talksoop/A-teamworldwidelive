@@ -79,6 +79,13 @@ export default function FanSignup() {
           <a style={styles.link} href="/fan/login">
             Already have an account? Log in
           </a>
+          <p style={styles.termsNote}>
+            By creating an account, you agree to our{" "}
+            <a style={styles.termsLink} href="/terms" target="_blank" rel="noreferrer">
+              Terms of Service
+            </a>
+            .
+          </p>
         </form>
       </main>
     </>
@@ -173,5 +180,16 @@ const styles = {
     fontSize: "0.85rem",
     textDecoration: "underline",
     textUnderlineOffset: 3,
+  },
+  termsNote: {
+    textAlign: "center",
+    color: "var(--text-dim)",
+    fontSize: "0.76rem",
+    margin: "2px 0 0",
+    lineHeight: 1.4,
+  },
+  termsLink: {
+    color: "var(--text-dim)",
+    textDecoration: "underline",
   },
 };

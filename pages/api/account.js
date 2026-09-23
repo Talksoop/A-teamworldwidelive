@@ -25,6 +25,9 @@ export default async function handler(req, res) {
     prisma.battle.deleteMany({ where: { hostId } }),
     prisma.amaRequest.deleteMany({ where: { hostId } }),
     prisma.settings.deleteMany({ where: { hostId } }),
+    prisma.liveEvent.deleteMany({ where: { hostId } }),
+    prisma.radioRecommendation.deleteMany({ where: { hostId } }),
+    prisma.follow.deleteMany({ where: { hostId } }),
     prisma.host.delete({ where: { id: hostId } }),
   ]);
 
