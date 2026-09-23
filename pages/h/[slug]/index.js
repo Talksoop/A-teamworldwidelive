@@ -24,6 +24,7 @@ export default function HostHome() {
   const [following, setFollowing] = useState(false);
   const [upcoming, setUpcoming] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [spotlight, setSpotlight] = useState([]);
 
   useEffect(() => {
     if (!slug) return;
@@ -33,6 +34,9 @@ export default function HostHome() {
     fetch(`/api/schedule/upcoming?slug=${slug}`)
       .then((r) => (r.ok ? r.json() : []))
       .then(setUpcoming);
+    fetch(`/api/spotlight?slug=${slug}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setSpotlight);
   }, [slug]);
 
   const loadSettings = useCallback(() => {
@@ -109,6 +113,18 @@ export default function HostHome() {
             </button>
           )}
         </div>
+
+        {spotlight.length > 0 && (
+          <div style={styles.spotlightBox}>
+            <p style={styles.spotlightLabel}>★ SPOTLIGHT</p>
+            {spotlight.map((s, i) => (
+              <div key={s.id} style={{ ...styles.spotlightRow, ...(i === 0 ? { borderTop: "none", paddingTop: 0 } : {}) }}>
+                <p style={styles.spotlightSong}>{s.songName || "Untitled"}</p>
+                <p style={styles.spotlightArtist}>{s.name}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {upcoming.length > 0 && (
           <div style={styles.upcomingBox}>
@@ -250,6 +266,35 @@ const styles = {
     fontWeight: 700,
     fontSize: "1.3rem",
     margin: 0,
+  },
+  spotlightBox: {
+    background: "linear-gradient(135deg, rgba(255,209,79,0.08), rgba(255,209,79,0.02))",
+    border: "1px solid rgba(255,209,79,0.4)",
+    borderRadius: "var(--radius-md)",
+    padding: "14px 16px",
+    marginBottom: 14,
+    boxShadow: "0 0 20px rgba(255,209,79,0.08)",
+  },
+  spotlightLabel: {
+    fontSize: "0.7rem",
+    letterSpacing: "0.1em",
+    color: "#ffd14f",
+    fontWeight: 700,
+    margin: "0 0 8px",
+  },
+  spotlightRow: {
+    padding: "6px 0",
+    borderTop: "1px solid rgba(255,209,79,0.15)",
+  },
+  spotlightSong: {
+    fontWeight: 700,
+    fontSize: "0.95rem",
+    margin: 0,
+  },
+  spotlightArtist: {
+    color: "var(--text-dim)",
+    fontSize: "0.78rem",
+    margin: "2px 0 0",
   },
   upcomingBox: {
     background: "var(--panel)",

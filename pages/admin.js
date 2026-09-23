@@ -154,6 +154,25 @@ export default function Admin() {
     load();
   }
 
+  async function toggleSpotlight(id, spotlighted) {
+    setError("");
+    const res = await fetch(`/api/submissions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spotlighted }),
+    });
+    if (!res.ok) {
+      setError("Couldn't update the spotlight. Try again.");
+      return;
+    }
+    load();
+  }
+
+  function isSpotlighted(s) {
+    if (!s.spotlightedAt) return false;
+    return Date.now() - new Date(s.spotlightedAt).getTime() < 24 * 60 * 60 * 1000;
+  }
+
   const pending = submissions.filter((s) => s.status === "PENDING");
   const queued = submissions.filter((s) => s.status === "QUEUED");
   const playing = submissions.find((s) => s.status === "PLAYING");
@@ -298,6 +317,12 @@ export default function Admin() {
                         Recommend for radio
                       </button>
                     )}
+                    <button
+                      style={isSpotlighted(playing) ? styles.spotlightBtnActive : styles.spotlightBtn}
+                      onClick={() => toggleSpotlight(playing.id, !isSpotlighted(playing))}
+                    >
+                      {isSpotlighted(playing) ? "★ Spotlighted" : "☆ Spotlight"}
+                    </button>
                     <button style={styles.doneBtn} onClick={() => updateStatus(playing.id, "DONE")}>
                       Mark done
                     </button>
@@ -350,6 +375,12 @@ export default function Admin() {
                             Radio
                           </button>
                         )}
+                        <button
+                          style={isSpotlighted(s) ? styles.spotlightBtnActive : styles.spotlightBtn}
+                          onClick={() => toggleSpotlight(s.id, !isSpotlighted(s))}
+                        >
+                          {isSpotlighted(s) ? "★ Spotlighted" : "☆ Spotlight"}
+                        </button>
                         <button style={styles.playBtn} onClick={() => playSubmission(s)}>
                           Play
                         </button>
@@ -422,6 +453,12 @@ export default function Admin() {
                       </p>
                     </div>
                     <div style={styles.rowBtns}>
+                      <button
+                        style={isSpotlighted(s) ? styles.spotlightBtnActive : styles.spotlightBtn}
+                        onClick={() => toggleSpotlight(s.id, !isSpotlighted(s))}
+                      >
+                        {isSpotlighted(s) ? "★ Spotlighted" : "☆ Spotlight"}
+                      </button>
                       <button style={styles.playBtn} onClick={() => playSubmission(s)}>
                         Play again
                       </button>
@@ -2329,6 +2366,26 @@ const styles = {
     border: "1px solid var(--purple)",
     color: "var(--purple)",
     fontWeight: 600,
+    padding: "8px 14px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
+  },
+  spotlightBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    padding: "8px 14px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
+  },
+  spotlightBtnActive: {
+    background: "rgba(255, 209, 79, 0.12)",
+    border: "1px solid #ffd14f",
+    color: "#ffd14f",
+    fontWeight: 700,
     padding: "8px 14px",
     borderRadius: "var(--radius-sm)",
     fontSize: "0.85rem",

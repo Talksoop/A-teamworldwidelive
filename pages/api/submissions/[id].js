@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "PATCH") {
-    const { status, order } = req.body || {};
+    const { status, order, spotlighted } = req.body || {};
     if (status && !VALID_STATUSES.includes(status)) {
       return res.status(400).json({ error: "Invalid status." });
     }
@@ -38,6 +38,9 @@ export default async function handler(req, res) {
         ...(status ? { status } : {}),
         ...(status === "DONE" ? { playedAt: new Date() } : {}),
         ...(typeof order === "number" ? { order } : {}),
+        ...(typeof spotlighted === "boolean"
+          ? { spotlightedAt: spotlighted ? new Date() : null }
+          : {}),
       },
     });
     broadcastQueueUpdate(hostId);
