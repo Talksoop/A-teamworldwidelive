@@ -95,13 +95,14 @@ model Settings {
 }
 
 model LiveEvent {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   hostId    String
-  title     String   @default("Going live")
+  title     String    @default("Going live")
   platform  String? // e.g. "Twitch", "TikTok", "YouTube", "Instagram Live"
   startsAt  DateTime
+  endsAt    DateTime? // optional; same day as startsAt in the UI
   url       String? // optional link to the stream
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model RadioRecommendation {

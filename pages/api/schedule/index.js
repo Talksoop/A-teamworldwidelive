@@ -16,13 +16,23 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { title, platform, startsAt, url } = req.body || {};
+    const { title, platform, startsAt, endsAt, url } = req.body || {};
     if (!startsAt) {
       return res.status(400).json({ error: "A date/time is required." });
     }
     const when = new Date(startsAt);
     if (Number.isNaN(when.getTime())) {
       return res.status(400).json({ error: "That date/time isn't valid." });
+    }
+    let endWhen = null;
+    if (endsAt) {
+      endWhen = new Date(endsAt);
+      if (Number.isNaN(endWhen.getTime())) {
+        return res.status(400).json({ error: "That end time isn't valid." });
+      }
+      if (endWhen <= when) {
+        return res.status(400).json({ error: "End time has to be after the start time." });
+      }
     }
     if ((title && title.length > 80) || (platform && platform.length > 40) || (url && url.length > 500)) {
       return res.status(400).json({ error: "One of the fields is too long." });
@@ -34,6 +44,7 @@ export default async function handler(req, res) {
         title: title?.trim() || "Going live",
         platform: platform?.trim() || null,
         startsAt: when,
+        endsAt: endWhen,
         url: url?.trim() || null,
       },
     });

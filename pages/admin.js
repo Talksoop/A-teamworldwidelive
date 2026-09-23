@@ -1348,8 +1348,23 @@ function Schedule() {
   }, [load]);
 
   async function deleteEvent(id) {
+    if (!window.confirm("Remove this scheduled go-live time? This can't be undone.")) {
+      return;
+    }
     await fetch(`/api/schedule/${id}`, { method: "DELETE" });
     load();
+  }
+
+  function formatWhen(e) {
+    const start = new Date(e.startsAt);
+    const startOpts = { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+    if (!e.endsAt) {
+      return start.toLocaleString(undefined, startOpts);
+    }
+    const end = new Date(e.endsAt);
+    const sameDay = start.toDateString() === end.toDateString();
+    const endStr = end.toLocaleString(undefined, sameDay ? { hour: "numeric", minute: "2-digit" } : startOpts);
+    return `${start.toLocaleString(undefined, startOpts)} – ${endStr}`;
   }
 
   async function createEvent(payload) {
@@ -1393,15 +1408,7 @@ function Schedule() {
                     {e.title}
                     {e.platform && <span style={styles.platformBadge}>{e.platform}</span>}
                   </p>
-                  <p style={styles.submitter}>
-                    {new Date(e.startsAt).toLocaleString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                  <p style={styles.submitter}>{formatWhen(e)}</p>
                   {e.url && (
                     <a style={styles.link} href={e.url} target="_blank" rel="noreferrer">
                       {e.url}
@@ -1450,13 +1457,23 @@ function ScheduleForm({ onCancel, onSave }) {
   const [platform, setPlatform] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [url, setUrl] = useState("");
 
   function submit(e) {
     e.preventDefault();
     if (!date || !time) return;
     const startsAt = new Date(`${date}T${time}`).toISOString();
-    onSave({ title: title.trim(), platform: platform.trim(), startsAt, url: url.trim() });
+    let endsAt = "";
+    if (endTime) {
+      const end = new Date(`${date}T${endTime}`);
+      if (end <= new Date(`${date}T${time}`)) {
+        // Likely an overnight stream (e.g. 11pm–1am) — roll the end to the next day.
+        end.setDate(end.getDate() + 1);
+      }
+      endsAt = end.toISOString();
+    }
+    onSave({ title: title.trim(), platform: platform.trim(), startsAt, endsAt, url: url.trim() });
   }
 
   return (
@@ -1481,6 +1498,15 @@ function ScheduleForm({ onCancel, onSave }) {
           value={time}
           onChange={(e) => setTime(e.target.value)}
           required
+        />
+      </div>
+      <div>
+        <p style={styles.hint}>End time (optional)</p>
+        <input
+          style={styles.input}
+          type="time"
+          value={endTime}
+          onChange={(e) => setEndTime(e.target.value)}
         />
       </div>
       <input

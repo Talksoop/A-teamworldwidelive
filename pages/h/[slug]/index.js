@@ -3,6 +3,18 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import SiteNav from "../../../lib/SiteNav";
 
+function formatWhen(e) {
+  const start = new Date(e.startsAt);
+  const startOpts = { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+  if (!e.endsAt) {
+    return start.toLocaleString(undefined, startOpts);
+  }
+  const end = new Date(e.endsAt);
+  const sameDay = start.toDateString() === end.toDateString();
+  const endStr = end.toLocaleString(undefined, sameDay ? { hour: "numeric", minute: "2-digit" } : startOpts);
+  return `${start.toLocaleString(undefined, startOpts)} – ${endStr}`;
+}
+
 export default function HostHome() {
   const router = useRouter();
   const { slug } = router.query;
@@ -90,15 +102,7 @@ export default function HostHome() {
                   {e.title}
                   {e.platform && ` · ${e.platform}`}
                 </span>
-                <span style={styles.upcomingWhen}>
-                  {new Date(e.startsAt).toLocaleString(undefined, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
+                <span style={styles.upcomingWhen}>{formatWhen(e)}</span>
               </div>
             ))}
           </div>

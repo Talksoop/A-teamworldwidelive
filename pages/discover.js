@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import Head from "next/head";
 import SiteNav from "../lib/SiteNav";
 
+function formatWhen(e) {
+  const start = new Date(e.startsAt);
+  const startOpts = { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+  if (!e.endsAt) {
+    return start.toLocaleString(undefined, startOpts);
+  }
+  const end = new Date(e.endsAt);
+  const sameDay = start.toDateString() === end.toDateString();
+  const endStr = end.toLocaleString(undefined, sameDay ? { hour: "numeric", minute: "2-digit" } : startOpts);
+  return `${start.toLocaleString(undefined, startOpts)} – ${endStr}`;
+}
+
 export default function Discover() {
   const [hosts, setHosts] = useState([]);
   const [fan, setFan] = useState(null);
@@ -70,15 +82,7 @@ export default function Discover() {
                     {e.platform && ` · ${e.platform}`}
                   </div>
                 </div>
-                <span style={styles.calendarWhen}>
-                  {new Date(e.startsAt).toLocaleString(undefined, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
+                <span style={styles.calendarWhen}>{formatWhen(e)}</span>
               </a>
             ))}
           </div>
