@@ -43,6 +43,10 @@ export default async function handler(req, res) {
     create: { hostId: host.id },
   });
 
+  if (!settings.queueOpen) {
+    return res.status(400).json({ error: "This channel isn't taking submissions right now." });
+  }
+
   let skipOffer = null;
   let reactOffer = null;
   if (skipOfferId) {

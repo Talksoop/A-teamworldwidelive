@@ -383,6 +383,17 @@ function PricingAndOffers() {
     load();
   }
 
+  async function setQueueOpen(open) {
+    setSavingSettings(true);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ queueOpen: open }),
+    });
+    setSavingSettings(false);
+    load();
+  }
+
   async function saveBasePrice() {
     const cents = Math.round(parseFloat(basePriceInput || "0") * 100);
     if (Number.isNaN(cents) || cents < 0) {
@@ -451,6 +462,31 @@ function PricingAndOffers() {
 
   return (
     <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Accepting submissions</p>
+        <div style={styles.modeToggle}>
+          <button
+            style={settings.queueOpen ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setQueueOpen(true)}
+            disabled={savingSettings}
+          >
+            Open
+          </button>
+          <button
+            style={!settings.queueOpen ? styles.modeBtnActive : styles.modeBtn}
+            onClick={() => setQueueOpen(false)}
+            disabled={savingSettings}
+          >
+            Closed
+          </button>
+        </div>
+        <p style={styles.hint}>
+          {settings.queueOpen
+            ? "Fans can submit tracks right now. Anything already in the queue keeps playing either way."
+            : "New submissions are paused — fans see a \"closed\" message instead of the submit form. Toggle back to Open any time; it takes effect immediately."}
+        </p>
+      </section>
+
       <section style={styles.section}>
         <p style={styles.sectionLabel}>Base submission price</p>
         <div style={styles.modeToggle}>

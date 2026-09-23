@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import SiteNav from "../../../lib/SiteNav";
+import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 function formatPrice(cents) {
   return `$${(cents / 100).toFixed(2)}`;
@@ -30,20 +31,26 @@ export default function Submit() {
   const [parentId, setParentId] = useState(null);
   const pollTries = useRef(0);
 
-  useEffect(() => {
+  const loadSettings = useCallback(async () => {
     if (!slug) return;
-    async function load() {
-      const [settingsRes, offersRes] = await Promise.all([
-        fetch(`/api/settings?slug=${slug}`),
-        fetch(`/api/offers?slug=${slug}`),
-      ]);
-      setSettings(await settingsRes.json());
-      const offers = await offersRes.json();
-      setSkipOffers(offers.filter((o) => o.type === "SKIP"));
-      setReactOffers(offers.filter((o) => o.type === "REACT"));
-    }
-    load();
+    const [settingsRes, offersRes] = await Promise.all([
+      fetch(`/api/settings?slug=${slug}`),
+      fetch(`/api/offers?slug=${slug}`),
+    ]);
+    setSettings(await settingsRes.json());
+    const offers = await offersRes.json();
+    setSkipOffers(offers.filter((o) => o.type === "SKIP"));
+    setReactOffers(offers.filter((o) => o.type === "REACT"));
   }, [slug]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // If the creator changes pricing, the submission mode, or opens/closes the
+  // queue while this page is already open, pick it up live instead of
+  // leaving a stale price or a closed queue's form up.
+  useQueueSocket(settings?.hostId, loadSettings, "settings-updated");
 
   // Prefill from a logged-in fan account so they don't retype it every time.
   useEffect(() => {
@@ -349,6 +356,34 @@ export default function Submit() {
           </div>
         </div>
       </main>
+    );
+  }
+
+  if ((state === "idle" || state === "error") && settings && settings.queueOpen === false) {
+    return (
+      <>
+        <Head>
+          <title>Submissions closed — A-Team Worldwide Live</title>
+        </Head>
+        <SiteNav slug={slug} />
+        <main style={styles.main}>
+          <div style={styles.card}>
+            <h1 style={styles.doneTitle}>Submissions are closed</h1>
+            <p style={styles.doneSub}>
+              This creator isn't taking new tracks into the queue right now. Check back soon —
+              this'll update the moment they reopen it.
+            </p>
+            <div style={styles.doneBtns}>
+              <a style={styles.secondaryBtn} href={`/h/${slug}`}>
+                Back to channel
+              </a>
+              <a style={styles.secondaryBtn} href={`/h/${slug}/overlay`}>
+                View live queue
+              </a>
+            </div>
+          </div>
+        </main>
+      </>
     );
   }
 

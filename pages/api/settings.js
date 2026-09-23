@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { getSessionHostId } from "../../lib/auth";
 import { getHostBySlug } from "../../lib/host";
+import { broadcastSettingsUpdate } from "../../lib/realtime";
 
 async function getOrCreateSettings(hostId) {
   return prisma.settings.upsert({
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     if (!hostId) {
       return res.status(401).json({ error: "Not authorized." });
     }
-    const { submissionMode, basePriceCents } = req.body || {};
+    const { submissionMode, basePriceCents, queueOpen } = req.body || {};
     if (submissionMode && !["FREE", "PAID"].includes(submissionMode)) {
       return res.status(400).json({ error: "Invalid submissionMode." });
     }
@@ -47,14 +48,21 @@ export default async function handler(req, res) {
     ) {
       return res.status(400).json({ error: "basePriceCents must be a non-negative integer." });
     }
+    if (typeof queueOpen !== "undefined" && typeof queueOpen !== "boolean") {
+      return res.status(400).json({ error: "queueOpen must be true or false." });
+    }
     await getOrCreateSettings(hostId);
     const updated = await prisma.settings.update({
       where: { hostId },
       data: {
         ...(submissionMode ? { submissionMode } : {}),
         ...(typeof basePriceCents !== "undefined" ? { basePriceCents } : {}),
+        ...(typeof queueOpen !== "undefined" ? { queueOpen } : {}),
       },
     });
+    // Push to any fan submit/channel page that's already open so pricing,
+    // mode, and open/closed status change live without a manual refresh.
+    broadcastSettingsUpdate(hostId);
     return res.status(200).json(updated);
   }
 

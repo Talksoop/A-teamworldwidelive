@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import SiteNav from "../../../lib/SiteNav";
+import { useQueueSocket } from "../../../lib/useQueueSocket";
 
 function formatWhen(e) {
   const start = new Date(e.startsAt);
@@ -22,6 +23,7 @@ export default function HostHome() {
   const [fan, setFan] = useState(null);
   const [following, setFollowing] = useState(false);
   const [upcoming, setUpcoming] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -32,6 +34,21 @@ export default function HostHome() {
       .then((r) => (r.ok ? r.json() : []))
       .then(setUpcoming);
   }, [slug]);
+
+  const loadSettings = useCallback(() => {
+    if (!slug) return;
+    fetch(`/api/settings?slug=${slug}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setSettings);
+  }, [slug]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // Reflect the creator opening/closing submissions right away for anyone
+  // sitting on this page.
+  useQueueSocket(host?.id, loadSettings, "settings-updated");
 
   useEffect(() => {
     fetch("/api/fan/me")
@@ -111,17 +128,33 @@ export default function HostHome() {
         <a href={`/h/${slug}/submit`} style={styles.card}>
           <div style={styles.cardTop}>
             <h2 style={styles.cardTitle}>Live queue submission</h2>
-            <span style={{ ...styles.badge, ...styles.badgeQueue }}>QUEUE</span>
+            <span
+              style={{
+                ...styles.badge,
+                ...(settings?.queueOpen === false ? styles.badgeClosed : styles.badgeQueue),
+              }}
+            >
+              {settings?.queueOpen === false ? "CLOSED" : "QUEUE"}
+            </span>
           </div>
           <p style={styles.cardDesc}>
-            Send your track into the live queue. Get reviewed on stream, in front of everyone.
+            {settings?.queueOpen === false
+              ? "Not taking new submissions right now — check back soon."
+              : "Send your track into the live queue. Get reviewed on stream, in front of everyone."}
           </p>
           <div style={styles.chips}>
             <span style={styles.chip}>Public review</span>
             <span style={styles.chip}>Real-time</span>
             <span style={styles.chip}>Skip tiers available</span>
           </div>
-          <div style={{ ...styles.cta, ...styles.ctaGrad }}>Submit to queue</div>
+          <div
+            style={{
+              ...styles.cta,
+              ...(settings?.queueOpen === false ? styles.ctaOutline : styles.ctaGrad),
+            }}
+          >
+            {settings?.queueOpen === false ? "Submissions closed" : "Submit to queue"}
+          </div>
         </a>
 
         <a href={`/h/${slug}/ama`} style={styles.card}>
@@ -286,6 +319,11 @@ const styles = {
     background: "rgba(155,107,255,0.12)",
     color: "var(--purple)",
     border: "1px solid rgba(155,107,255,0.35)",
+  },
+  badgeClosed: {
+    background: "rgba(255,255,255,0.06)",
+    color: "var(--text-dim)",
+    border: "1px solid var(--line)",
   },
   cardDesc: {
     color: "var(--text-dim)",
