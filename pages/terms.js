@@ -1,4 +1,5 @@
 import Head from "next/head";
+import SiteFooter from "../lib/SiteFooter";
 
 const LAST_UPDATED = "September 23, 2026";
 
@@ -163,6 +164,7 @@ export default function Terms() {
           <P>Questions about these Terms? Reach out through the contact info on your account or channel.</P>
         </Section>
       </main>
+      <SiteFooter />
     </>
   );
 }
