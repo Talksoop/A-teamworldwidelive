@@ -292,6 +292,11 @@ export default function Admin() {
           )}
         </div>
         {error && <p style={styles.error}>{error}</p>}
+        {playing && (
+          <div style={styles.stickyPlayerWrap}>
+            <NowPlayingPlayer submission={playing} />
+          </div>
+        )}
 
         {tab === "queue" ? (
           <>
@@ -307,7 +312,6 @@ export default function Admin() {
                       {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
                     </a>
                     {playing.message && <p style={styles.msg}>“{playing.message}”</p>}
-                    <NowPlayingPlayer submission={playing} />
                   </div>
                   <div style={styles.rowBtns}>
                     {radioRecommendedIds.has(playing.id) ? (
@@ -2141,8 +2145,15 @@ const styles = {
   player: {
     width: "100%",
     maxHeight: 220,
-    marginTop: 10,
     display: "block",
+  },
+  stickyPlayerWrap: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--purple)",
+    borderRadius: "var(--radius-md)",
+    boxShadow: "var(--glow-purple), var(--shadow-sm)",
+    padding: "10px 14px",
+    marginBottom: 20,
   },
   embedFrame: {
     width: "100%",
