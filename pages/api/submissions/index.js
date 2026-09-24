@@ -20,7 +20,28 @@ export default async function handler(req, res) {
       where: status ? { hostId, status } : { hostId },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     });
-    return res.status(200).json(await attachPlayUrls(submissions));
+
+    // Submission.skipOfferId / reactOfferId are plain string references
+    // (not a Prisma relation), so look up the offer names in one query and
+    // attach them here -- lets the admin UI clearly label a queue entry as
+    // a paid skip (and which tier) instead of just a generic "PAID" tag.
+    const offerIds = [
+      ...new Set(submissions.flatMap((s) => [s.skipOfferId, s.reactOfferId]).filter(Boolean)),
+    ];
+    const offers = offerIds.length
+      ? await prisma.offer.findMany({
+          where: { id: { in: offerIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const offerNameById = Object.fromEntries(offers.map((o) => [o.id, o.name]));
+    const withOfferNames = submissions.map((s) => ({
+      ...s,
+      skipOfferName: s.skipOfferId ? offerNameById[s.skipOfferId] || null : null,
+      reactOfferName: s.reactOfferId ? offerNameById[s.reactOfferId] || null : null,
+    }));
+
+    return res.status(200).json(await attachPlayUrls(withOfferNames));
   }
 
   if (req.method === "POST") {

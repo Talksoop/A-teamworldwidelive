@@ -16,10 +16,53 @@ function formatPrice(cents) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+// Submission timestamps are always shown in Eastern time, regardless of
+// the viewer's own timezone -- toLocaleString picks EST vs EDT correctly
+// for the date in question.
+function formatSubmittedAt(dateString) {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
 function PlatformBadge({ link }) {
   const { platform } = parseLink(link);
   if (platform === "link") return null;
   return <span style={styles.platformBadge}>{PLATFORM_LABELS[platform]}</span>;
+}
+
+// Clearly flags a submission that paid to skip the line (and which skip
+// tier, when we know its name) or paid for a react add-on, instead of just
+// the generic "PAID" tag -- a host scanning the queue needs to know at a
+// glance which entries jumped ahead and why.
+function SubmissionTags({ s }) {
+  // SKIP/REACT already imply the submission was paid for, so a generic
+  // "PAID" tag next to them would just be noise -- only fall back to it
+  // for a submission that paid the base entry price with no add-on.
+  if (!s.skipOfferId && !s.reactOfferId) {
+    return s.paid ? <span style={styles.paidTag}>PAID</span> : null;
+  }
+  return (
+    <>
+      {s.skipOfferId && (
+        <span style={styles.skipTag}>SKIP{s.skipOfferName ? `: ${s.skipOfferName}` : ""}</span>
+      )}
+      {s.reactOfferId && (
+        <span style={styles.reactTag}>REACT{s.reactOfferName ? `: ${s.reactOfferName}` : ""}</span>
+      )}
+    </>
+  );
+}
+
+function SubmittedAt({ s }) {
+  if (!s.createdAt) return null;
+  return <p style={styles.timestamp}>Submitted {formatSubmittedAt(s.createdAt)}</p>;
 }
 
 // Actually plays the track right on the queue tab instead of leaving it as
@@ -305,8 +348,12 @@ export default function Admin() {
               {playing ? (
                 <div style={styles.playingCard}>
                   <div>
-                    <p style={styles.name}>{playing.songName || "(no song name)"}</p>
+                    <p style={styles.name}>
+                      {playing.songName || "(no song name)"}
+                      <SubmissionTags s={playing} />
+                    </p>
                     <p style={styles.submitter}>{playing.name}{playing.email && ` · ${playing.email}`}</p>
+                    <SubmittedAt s={playing} />
                     <a style={styles.link} href={playing.playUrl || playing.link} target="_blank" rel="noreferrer">
                       {playing.sourceType !== "UPLOAD" && <PlatformBadge link={playing.link} />}
                       {playing.sourceType === "UPLOAD" ? "▶ Play uploaded file" : playing.link}
@@ -362,10 +409,11 @@ export default function Admin() {
                       <div>
                         <p style={styles.name}>
                           {s.songName || "(no song name)"}
-                          {s.paid && <span style={styles.paidTag}>PAID</span>}
+                          <SubmissionTags s={s} />
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
                         <p style={styles.submitter}>{s.name}{s.email && ` · ${s.email}`}</p>
+                        <SubmittedAt s={s} />
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
                           {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
@@ -406,10 +454,11 @@ export default function Admin() {
                       <div>
                         <p style={styles.name}>
                           {s.songName || "(no song name)"}
-                          {s.paid && <span style={styles.paidTag}>PAID</span>}
+                          <SubmissionTags s={s} />
                           {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
                         </p>
                         <p style={styles.submitter}>{s.name}{s.email && ` · ${s.email}`}</p>
+                        <SubmittedAt s={s} />
                         <a style={styles.link} href={s.playUrl || s.link} target="_blank" rel="noreferrer">
                           {s.sourceType !== "UPLOAD" && <PlatformBadge link={s.link} />}
                           {s.sourceType === "UPLOAD" ? "▶ Play uploaded file" : s.link}
@@ -450,11 +499,16 @@ export default function Admin() {
                 {played.map((s) => (
                   <li key={s.id} style={styles.row}>
                     <div>
-                      <p style={styles.name}>{s.songName || "(no song name)"}</p>
+                      <p style={styles.name}>
+                        {s.songName || "(no song name)"}
+                        <SubmissionTags s={s} />
+                        {s.parentSubmissionId && <span style={styles.bonusTag}>BONUS</span>}
+                      </p>
                       <p style={styles.submitter}>
                         {s.name}
                         {s.email && ` · ${s.email}`}
                       </p>
+                      <SubmittedAt s={s} />
                     </div>
                     <div style={styles.rowBtns}>
                       <button
@@ -2123,10 +2177,34 @@ const styles = {
     borderRadius: 4,
     letterSpacing: "0.05em",
   },
+  skipTag: {
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    color: "#05060e",
+    background: "var(--live)",
+    padding: "2px 6px",
+    borderRadius: 4,
+    letterSpacing: "0.05em",
+  },
+  reactTag: {
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    color: "var(--purple)",
+    border: "1px solid var(--purple)",
+    padding: "1px 6px",
+    borderRadius: 4,
+    letterSpacing: "0.05em",
+  },
   submitter: {
     fontSize: "0.78rem",
     color: "var(--text-dim)",
     margin: "0 0 2px",
+  },
+  timestamp: {
+    fontSize: "0.74rem",
+    color: "var(--text-dim)",
+    margin: "0 0 2px",
+    opacity: 0.8,
   },
   vsInline: {
     color: "var(--text-dim)",
