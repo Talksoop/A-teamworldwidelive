@@ -155,8 +155,10 @@ export default function Terms() {
 
         <Section title="13. Governing law">
           <P>
-            [Owner to fill in: the state/country whose law governs these Terms, and where disputes
-            will be handled.]
+            These Terms are governed by the laws of the State of Florida, without regard to its
+            conflict-of-laws rules. Any dispute arising out of these Terms or the Service will be
+            handled in the state or federal courts located in Florida, and you consent to that
+            jurisdiction.
           </P>
         </Section>
 
