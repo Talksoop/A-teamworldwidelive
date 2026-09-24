@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
+import SiteNav from "../lib/SiteNav";
 import SiteFooter from "../lib/SiteFooter";
 
 const WAYS_TO_EARN = [
@@ -92,13 +93,8 @@ export default function Home() {
       <Head>
         <title>A-Team Worldwide Live</title>
       </Head>
+      <SiteNav />
       <main style={styles.main}>
-        <div style={styles.topRow}>
-          <a href="/pricing" style={styles.topLink}>
-            Pricing
-          </a>
-        </div>
-
         <div style={styles.bannerRule}>
           <div style={{ ...styles.ruleLine, background: "linear-gradient(90deg, transparent, var(--cyan))" }} />
           <div style={{ ...styles.ruleLine, background: "linear-gradient(90deg, var(--purple), transparent)" }} />
@@ -207,17 +203,6 @@ const styles = {
     margin: "0 auto",
     padding: "20px 20px 0",
     textAlign: "center",
-  },
-  topRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginBottom: 12,
-  },
-  topLink: {
-    color: "var(--text-dim)",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    textDecoration: "none",
   },
   bannerRule: {
     display: "flex",
