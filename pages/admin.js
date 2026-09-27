@@ -1452,6 +1452,40 @@ function Channel({ me }) {
   const [followers, setFollowers] = useState(null);
   const [followersError, setFollowersError] = useState("");
 
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [bio, setBio] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        if (!s) return;
+        setWelcomeMessage(s.welcomeMessage || "");
+        setBio(s.bio || "");
+      });
+  }, []);
+
+  async function saveProfile() {
+    setProfileSaving(true);
+    setProfileError("");
+    setProfileSaved(false);
+    const res = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ welcomeMessage, bio }),
+    });
+    setProfileSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setProfileError(d.error || "Couldn't save your profile.");
+      return;
+    }
+    setProfileSaved(true);
+  }
+
   useEffect(() => {
     fetch("/api/followers")
       .then(async (r) => {
@@ -1547,6 +1581,41 @@ function Channel({ me }) {
             {origin}/h/{me.slug}/ama
           </a>
         </div>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Welcome message &amp; bio</p>
+        <p style={styles.hint}>
+          Shown at the top of your public home page ({origin}/h/{me.slug}) — a short greeting for
+          fans plus a longer "about" section.
+        </p>
+        <input
+          style={{ ...styles.input, width: "100%" }}
+          placeholder="Welcome message (e.g. 'Thanks for stopping by — drop your track below!')"
+          value={welcomeMessage}
+          onChange={(e) => {
+            setWelcomeMessage(e.target.value);
+            setProfileSaved(false);
+          }}
+          maxLength={200}
+        />
+        <p style={styles.hint}>{welcomeMessage.length}/200</p>
+        <textarea
+          style={{ ...styles.input, width: "100%", height: 110, resize: "vertical", marginTop: 8 }}
+          placeholder="Bio — tell fans who you are and what your channel is about"
+          value={bio}
+          onChange={(e) => {
+            setBio(e.target.value);
+            setProfileSaved(false);
+          }}
+          maxLength={800}
+        />
+        <p style={styles.hint}>{bio.length}/800</p>
+        {profileError && <p style={styles.error}>{profileError}</p>}
+        {profileSaved && <p style={styles.hint}>✓ Saved.</p>}
+        <button style={styles.saveBtn} onClick={saveProfile} disabled={profileSaving}>
+          {profileSaving ? "Saving…" : "Save profile"}
+        </button>
       </section>
 
       <section style={styles.section}>

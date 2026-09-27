@@ -45,6 +45,8 @@ export default async function handler(req, res) {
       autoApprove,
       freeSubmissionLimit,
       resetFreeCount,
+      welcomeMessage,
+      bio,
     } = req.body || {};
     if (submissionMode && !["FREE", "PAID"].includes(submissionMode)) {
       return res.status(400).json({ error: "Invalid submissionMode." });
@@ -67,6 +69,18 @@ export default async function handler(req, res) {
     ) {
       return res.status(400).json({ error: "freeSubmissionLimit must be a non-negative integer." });
     }
+    if (typeof welcomeMessage !== "undefined" && typeof welcomeMessage !== "string") {
+      return res.status(400).json({ error: "welcomeMessage must be a string." });
+    }
+    if (typeof welcomeMessage === "string" && welcomeMessage.length > 200) {
+      return res.status(400).json({ error: "Welcome message must be 200 characters or fewer." });
+    }
+    if (typeof bio !== "undefined" && typeof bio !== "string") {
+      return res.status(400).json({ error: "bio must be a string." });
+    }
+    if (typeof bio === "string" && bio.length > 800) {
+      return res.status(400).json({ error: "Bio must be 800 characters or fewer." });
+    }
     const current = await getOrCreateSettings(hostId);
     // Opening a queue that was closed starts a fresh "session" for the free
     // quota, same as an explicit reset.
@@ -80,6 +94,8 @@ export default async function handler(req, res) {
         ...(typeof autoApprove !== "undefined" ? { autoApprove } : {}),
         ...(typeof freeSubmissionLimit !== "undefined" ? { freeSubmissionLimit } : {}),
         ...(reopening || resetFreeCount ? { freeSubmissionsUsed: 0 } : {}),
+        ...(typeof welcomeMessage === "string" ? { welcomeMessage: welcomeMessage.trim() || null } : {}),
+        ...(typeof bio === "string" ? { bio: bio.trim() || null } : {}),
       },
     });
     // Push to any fan submit/channel page that's already open so pricing,

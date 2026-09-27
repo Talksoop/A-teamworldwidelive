@@ -114,6 +114,13 @@ export default function HostHome() {
           )}
         </div>
 
+        {(settings?.welcomeMessage || settings?.bio) && (
+          <div style={styles.welcomeBox}>
+            {settings.welcomeMessage && <p style={styles.welcomeMessage}>{settings.welcomeMessage}</p>}
+            {settings.bio && <p style={styles.bio}>{settings.bio}</p>}
+          </div>
+        )}
+
         {spotlight.length > 0 && (
           <div style={styles.spotlightBox}>
             <p style={styles.spotlightLabel}>★ SPOTLIGHT</p>
@@ -266,6 +273,26 @@ const styles = {
     fontWeight: 700,
     fontSize: "1.3rem",
     margin: 0,
+  },
+  welcomeBox: {
+    background: "var(--panel)",
+    border: "1px solid var(--line-soft)",
+    borderRadius: "var(--radius-md)",
+    padding: "16px 18px",
+    marginBottom: 14,
+  },
+  welcomeMessage: {
+    fontWeight: 700,
+    fontSize: "1rem",
+    margin: 0,
+    lineHeight: 1.4,
+  },
+  bio: {
+    color: "var(--text-dim)",
+    fontSize: "0.86rem",
+    lineHeight: 1.5,
+    margin: "8px 0 0",
+    whiteSpace: "pre-wrap",
   },
   spotlightBox: {
     background: "linear-gradient(135deg, rgba(255,209,79,0.08), rgba(255,209,79,0.02))",

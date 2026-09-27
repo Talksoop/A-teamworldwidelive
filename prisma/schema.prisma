@@ -100,6 +100,8 @@ model Settings {
   autoApprove    Boolean @default(false) // true = free submissions drop straight into the queue, skipping "Pending review"
   freeSubmissionLimit Int @default(0) // PAID mode only: 0 = off; otherwise the first N submissions this session waive the base price
   freeSubmissionsUsed Int @default(0) // resets to 0 whenever the queue transitions closed -> open (a new "session")
+  welcomeMessage String? // short greeting shown at the top of the creator's public home page
+  bio            String? // longer "about" text shown on the creator's public home page
 }
 
 model LiveEvent {
