@@ -61,6 +61,10 @@ export default async function handler(req, res) {
       host = await prisma.host.update({ where: { id: host.id }, data: { googleId: profile.sub } });
     }
 
+    if (host.suspended) {
+      return redirectWith("/login?error=suspended");
+    }
+
     const fanCookie = await ensureLinkedFanCookie(host);
     return redirectWith(returnTo !== "/" ? returnTo : "/admin", [sessionCookie(host.id), fanCookie]);
   }
@@ -71,6 +75,10 @@ export default async function handler(req, res) {
     fan = await prisma.fan.create({ data: { email, name, googleId: profile.sub } });
   } else if (profile.sub && fan.googleId !== profile.sub) {
     fan = await prisma.fan.update({ where: { id: fan.id }, data: { googleId: profile.sub } });
+  }
+
+  if (fan.suspended) {
+    return redirectWith("/fan/login?error=suspended");
   }
 
   const hostCookie = await linkedHostCookieIfExists(fan);

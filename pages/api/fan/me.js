@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Not logged in." });
   }
   const fan = await prisma.fan.findUnique({ where: { id: fanId } });
-  if (!fan) {
+  if (!fan || fan.suspended) {
     return res.status(401).json({ error: "Not logged in." });
   }
   return res.status(200).json({ id: fan.id, name: fan.name, email: fan.email });

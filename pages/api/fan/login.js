@@ -26,6 +26,9 @@ export default async function handler(req, res) {
   if (!(await verifyPassword(password, fan.passwordHash))) {
     return res.status(401).json({ error: "Wrong email or password." });
   }
+  if (fan.suspended) {
+    return res.status(403).json({ error: "This account has been suspended." });
+  }
 
   // If this email also has a creator account, log them into that side too
   // — no separate password prompt, since they've already proven this

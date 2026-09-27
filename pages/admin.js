@@ -1,14 +1,20 @@
 import { useEffect, useState, useCallback } from "react";
 import Head from "next/head";
 import { getSessionHostId } from "../lib/auth";
+import { prisma } from "../lib/prisma";
 import { useQueueSocket } from "../lib/useQueueSocket";
 import { parseLink, PLATFORM_LABELS } from "../lib/linkParse";
 import { useStableBy } from "../lib/useStableValue";
 import BackButton from "../lib/BackButton";
 
 export async function getServerSideProps({ req }) {
-  if (!getSessionHostId(req)) {
+  const hostId = getSessionHostId(req);
+  if (!hostId) {
     return { redirect: { destination: "/login", permanent: false } };
+  }
+  const host = await prisma.host.findUnique({ where: { id: hostId }, select: { suspended: true } });
+  if (!host || host.suspended) {
+    return { redirect: { destination: "/login?error=suspended", permanent: false } };
   }
   return { props: {} };
 }
@@ -1679,10 +1685,12 @@ function Channel({ me }) {
 
 function Platform() {
   const [data, setData] = useState(null);
+  const [fans, setFans] = useState(null);
   const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState(null);
 
-  useEffect(() => {
-    fetch("/api/platform/hosts")
+  const loadHosts = useCallback(() => {
+    fetch("/api/platform/hosts", { cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
@@ -1693,6 +1701,94 @@ function Platform() {
       .then(setData)
       .catch((e) => setError(e.message));
   }, []);
+
+  const loadFans = useCallback(() => {
+    fetch("/api/platform/fans", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.error || "Couldn't load.");
+        }
+        return r.json();
+      })
+      .then((d) => setFans(d.fans))
+      .catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    loadHosts();
+    loadFans();
+  }, [loadHosts, loadFans]);
+
+  async function suspendHost(h, suspended) {
+    setBusyId(h.id);
+    const res = await fetch(`/api/platform/hosts/${h.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ suspended }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      window.alert(d.error || "Couldn't update that account.");
+      return;
+    }
+    loadHosts();
+  }
+
+  async function deleteHost(h) {
+    if (
+      !window.confirm(
+        `Permanently delete ${h.name} (${h.email})? This removes their channel, submissions, offers, and all other data tied to it. This can't be undone.`
+      )
+    ) {
+      return;
+    }
+    setBusyId(h.id);
+    const res = await fetch(`/api/platform/hosts/${h.id}`, { method: "DELETE" });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      window.alert(d.error || "Couldn't delete that account.");
+      return;
+    }
+    loadHosts();
+  }
+
+  async function suspendFan(f, suspended) {
+    setBusyId(f.id);
+    const res = await fetch(`/api/platform/fans/${f.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ suspended }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      window.alert(d.error || "Couldn't update that account.");
+      return;
+    }
+    loadFans();
+  }
+
+  async function deleteFan(f) {
+    if (
+      !window.confirm(
+        `Permanently delete ${f.name} (${f.email})? This removes their fan account and follows. This can't be undone.`
+      )
+    ) {
+      return;
+    }
+    setBusyId(f.id);
+    const res = await fetch(`/api/platform/fans/${f.id}`, { method: "DELETE" });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      window.alert(d.error || "Couldn't delete that account.");
+      return;
+    }
+    loadFans();
+  }
 
   if (error) return <p style={styles.error}>{error}</p>;
   if (!data) return null;
@@ -1724,10 +1820,15 @@ function Platform() {
                 <p style={styles.name}>
                   {h.name}
                   {h.isFounder && <span style={styles.paidTag}>YOU</span>}
-                  {!h.isFounder && h.stripeOnboarded && (
+                  {!h.isFounder && h.suspended && (
+                    <span style={{ ...styles.bonusTag, color: "var(--live)", borderColor: "var(--live)" }}>
+                      SUSPENDED
+                    </span>
+                  )}
+                  {!h.isFounder && !h.suspended && h.stripeOnboarded && (
                     <span style={styles.bonusTag}>STRIPE OK</span>
                   )}
-                  {!h.isFounder && !h.stripeOnboarded && (
+                  {!h.isFounder && !h.suspended && !h.stripeOnboarded && (
                     <span style={{ ...styles.bonusTag, color: "var(--live)", borderColor: "var(--live)" }}>
                       NOT ONBOARDED
                     </span>
@@ -1740,6 +1841,24 @@ function Platform() {
                   {h.submissionCount} submissions · {h.amaCount} AMA requests ·{" "}
                   {h.paidTransactionCount} paid
                 </p>
+                {!h.isFounder && (
+                  <div style={{ ...styles.offerCardBtns, marginTop: 8, maxWidth: 220 }}>
+                    <button
+                      style={styles.smallBtn}
+                      disabled={busyId === h.id}
+                      onClick={() => suspendHost(h, !h.suspended)}
+                    >
+                      {h.suspended ? "Unsuspend" : "Suspend"}
+                    </button>
+                    <button
+                      style={styles.smallBtnDanger}
+                      disabled={busyId === h.id}
+                      onClick={() => deleteHost(h)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: "right" }}>
                 <p style={styles.offerCardPrice}>{formatPrice(h.grossRevenueCents)}</p>
@@ -1750,6 +1869,55 @@ function Platform() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Fans</p>
+        {!fans ? (
+          <p style={styles.hint}>Loading…</p>
+        ) : fans.length === 0 ? (
+          <p style={styles.hint}>No fan accounts yet.</p>
+        ) : (
+          <ul style={styles.list}>
+            {fans.map((f) => (
+              <li key={f.id} style={styles.row}>
+                <div>
+                  <p style={styles.name}>
+                    {f.name}
+                    {f.isFounderLinked && <span style={styles.paidTag}>YOU</span>}
+                    {!f.isFounderLinked && f.suspended && (
+                      <span style={{ ...styles.bonusTag, color: "var(--live)", borderColor: "var(--live)" }}>
+                        SUSPENDED
+                      </span>
+                    )}
+                  </p>
+                  <p style={styles.submitter}>{f.email}</p>
+                  <p style={styles.submitter}>
+                    {f.followCount} following · {f.submissionCount} submissions
+                  </p>
+                  {!f.isFounderLinked && (
+                    <div style={{ ...styles.offerCardBtns, marginTop: 8, maxWidth: 220 }}>
+                      <button
+                        style={styles.smallBtn}
+                        disabled={busyId === f.id}
+                        onClick={() => suspendFan(f, !f.suspended)}
+                      >
+                        {f.suspended ? "Unsuspend" : "Suspend"}
+                      </button>
+                      <button
+                        style={styles.smallBtnDanger}
+                        disabled={busyId === f.id}
+                        onClick={() => deleteFan(f)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

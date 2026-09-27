@@ -18,6 +18,7 @@ model Host {
   stripeAccountId String? // Stripe Connect account id once they start onboarding
   stripeOnboarded Boolean  @default(false) // true once Connect reports charges_enabled
   isFounder       Boolean  @default(false) // the original single-tenant owner: charges go directly to the platform account, no Connect/fee needed
+  suspended       Boolean  @default(false) // set by the founder from Admin; blocks login while true, never true for isFounder
   createdAt       DateTime @default(now())
 }
 
@@ -27,6 +28,7 @@ model Fan {
   passwordHash String? // null for accounts created via Google sign-in that never set a password
   googleId     String?  @unique // Google's stable "sub" claim, once they've signed in with Google
   name         String
+  suspended    Boolean  @default(false) // set by the founder from Admin; blocks login while true
   createdAt    DateTime @default(now())
 }
 

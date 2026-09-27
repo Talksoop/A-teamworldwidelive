@@ -52,6 +52,7 @@ export default async function handler(req, res) {
       slug: h.slug,
       email: h.email,
       isFounder: h.isFounder,
+      suspended: h.suspended,
       stripeOnboarded: h.stripeOnboarded,
       platformFeeBps: h.platformFeeBps,
       createdAt: h.createdAt,

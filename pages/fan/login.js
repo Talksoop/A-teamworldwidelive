@@ -8,6 +8,7 @@ const GOOGLE_ERRORS = {
   google_state: "That Google sign-in link expired — try again.",
   google_failed: "Couldn't complete Google sign-in. Try again.",
   google_no_email: "Your Google account didn't share an email address — try a different sign-in method.",
+  suspended: "This account has been suspended.",
 };
 
 export default function FanLogin() {

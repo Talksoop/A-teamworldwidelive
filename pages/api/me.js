@@ -11,8 +11,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Not authorized." });
   }
   const host = await prisma.host.findUnique({ where: { id: hostId } });
-  if (!host) {
-    return res.status(404).json({ error: "Not found." });
+  if (!host || host.suspended) {
+    return res.status(401).json({ error: "Not authorized." });
   }
   return res.status(200).json({
     id: host.id,
