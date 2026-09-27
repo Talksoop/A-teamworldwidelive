@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import BackButton from "../../../../lib/BackButton";
 
 export default function AmaStatus() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function AmaStatus() {
         <title>Your request — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <BackButton style={styles.topBack} />
         {request === undefined && <p style={styles.idle}>Loading…</p>}
 
         {request === null && (
@@ -88,11 +90,17 @@ export default function AmaStatus() {
 
 const styles = {
   main: {
+    position: "relative",
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: "24px",
+  },
+  topBack: {
+    position: "absolute",
+    top: 20,
+    left: 20,
   },
   idle: {
     color: "var(--text-dim)",

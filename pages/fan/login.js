@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import BackButton from "../../lib/BackButton";
 
 const GOOGLE_ERRORS = {
   google_denied: "Google sign-in was cancelled.",
@@ -46,6 +47,7 @@ export default function FanLogin() {
         <title>Log in — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <BackButton style={styles.topBack} />
         <form style={styles.card} onSubmit={handleSubmit}>
           <h1 style={styles.title}>Welcome back</h1>
           <input
@@ -90,11 +92,17 @@ export default function FanLogin() {
 
 const styles = {
   main: {
+    position: "relative",
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+  },
+  topBack: {
+    position: "absolute",
+    top: 20,
+    left: 20,
   },
   card: {
     width: "100%",

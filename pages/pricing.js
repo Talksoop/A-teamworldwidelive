@@ -1,5 +1,6 @@
 import Head from "next/head";
 import SiteFooter from "../lib/SiteFooter";
+import BackButton from "../lib/BackButton";
 
 function Row({ title, children }) {
   return (
@@ -17,9 +18,7 @@ export default function Pricing() {
         <title>Pricing — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
-        <a href="/" style={styles.back}>
-          ← A-Team Worldwide Live
-        </a>
+        <BackButton style={styles.back} />
         <h1 style={styles.title}>Simple, pay-as-you-earn pricing</h1>
         <p style={styles.sub}>No monthly fees. No listing fees. We only make money when you do.</p>
 

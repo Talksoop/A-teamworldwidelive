@@ -1,5 +1,6 @@
 import Head from "next/head";
 import SiteFooter from "../lib/SiteFooter";
+import BackButton from "../lib/BackButton";
 
 const LAST_UPDATED = "September 23, 2026";
 
@@ -10,9 +11,7 @@ export default function Privacy() {
         <title>Privacy Policy — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
-        <a href="/" style={styles.back}>
-          ← A-Team Worldwide Live
-        </a>
+        <BackButton style={styles.back} />
         <h1 style={styles.title}>Privacy Policy</h1>
         <p style={styles.updated}>Last updated: {LAST_UPDATED}</p>
 

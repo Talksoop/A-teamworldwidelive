@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import BackButton from "../lib/BackButton";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -34,6 +35,7 @@ export default function Signup() {
         <title>Create your host account — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <BackButton style={styles.topBack} />
         <form style={styles.card} onSubmit={handleSubmit}>
           <h1 style={styles.title}>Set up your channel</h1>
           <p style={styles.sub}>Your own submit page, queue, overlay, and pricing.</p>
@@ -93,11 +95,17 @@ export default function Signup() {
 
 const styles = {
   main: {
+    position: "relative",
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+  },
+  topBack: {
+    position: "absolute",
+    top: 20,
+    left: 20,
   },
   card: {
     width: "100%",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import BackButton from "../../lib/BackButton";
 
 export default function FanSignup() {
   const [name, setName] = useState("");
@@ -34,6 +35,7 @@ export default function FanSignup() {
         <title>Sign up — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <BackButton style={styles.topBack} />
         <form style={styles.card} onSubmit={handleSubmit}>
           <h1 style={styles.title}>Create your account</h1>
           <p style={styles.sub}>Follow creators, submit tracks, and keep your history in one place.</p>
@@ -94,11 +96,17 @@ export default function FanSignup() {
 
 const styles = {
   main: {
+    position: "relative",
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+  },
+  topBack: {
+    position: "absolute",
+    top: 20,
+    left: 20,
   },
   card: {
     width: "100%",

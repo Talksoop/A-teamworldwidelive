@@ -4,6 +4,7 @@ import { getSessionHostId } from "../lib/auth";
 import { useQueueSocket } from "../lib/useQueueSocket";
 import { parseLink, PLATFORM_LABELS } from "../lib/linkParse";
 import { useStableBy } from "../lib/useStableValue";
+import BackButton from "../lib/BackButton";
 
 export async function getServerSideProps({ req }) {
   if (!getSessionHostId(req)) {
@@ -261,6 +262,7 @@ export default function Admin() {
         <title>Admin — A-Team Worldwide Live</title>
       </Head>
       <main style={styles.main}>
+        <BackButton style={styles.topBack} fallbackHref="/login" />
         <div style={styles.headerRow}>
           <div>
             <h1 style={styles.title}>Admin</h1>
@@ -2029,6 +2031,10 @@ const styles = {
     justifyContent: "space-between",
     gap: 12,
     marginBottom: 20,
+  },
+  topBack: {
+    display: "inline-block",
+    marginBottom: 12,
   },
   title: {
     fontFamily: "var(--font-head)",
