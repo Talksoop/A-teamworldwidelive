@@ -1,5 +1,4 @@
 import Head from "next/head";
-import { useRouter } from "next/router";
 import SiteNav from "../lib/SiteNav";
 import SiteFooter from "../lib/SiteFooter";
 
@@ -64,27 +63,15 @@ const HOW_IT_WORKS = [
 // and client markup disagree). This renders the wrapper as a <div> that
 // behaves like a link instead, so it stays keyboard/screen-reader
 // accessible without nesting anchors.
-function ClickCard({ href, style, children }) {
-  const router = useRouter();
-  return (
-    <div
-      style={style}
-      role="link"
-      tabIndex={0}
-      onClick={(e) => {
-        if (e.target.closest("a")) return;
-        router.push(href);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(href);
-        }
-      }}
-    >
-      {children}
-    </div>
-  );
+// Plain container -- deliberately NOT a click-anywhere-to-navigate card.
+// Each card already has explicit "Sign up" / "Log in" buttons; making the
+// whole card a link to a third, unlabeled destination (as an earlier
+// version of this page did) meant tapping the card body -- title,
+// description, badge, anywhere but the two real buttons -- silently
+// dropped a visitor onto /discover or /signup with no login/signup step at
+// all, which reads as an accidental way around the login screen.
+function Card({ style, children }) {
+  return <div style={style}>{children}</div>;
 }
 
 export default function Home() {
@@ -105,7 +92,7 @@ export default function Home() {
         <p style={styles.tag}>WORLD WIDE LIVE</p>
         <p style={styles.sub}>Live song reviews, battles, and private requests — pick how you want in.</p>
 
-        <ClickCard href="/discover" style={styles.card}>
+        <Card style={styles.card}>
           <div style={styles.cardTop}>
             <h2 style={styles.cardTitle}>I'm a fan</h2>
             <span style={{ ...styles.badge, ...styles.badgeCyan }}>FAN</span>
@@ -121,9 +108,9 @@ export default function Home() {
               Log in
             </a>
           </div>
-        </ClickCard>
+        </Card>
 
-        <ClickCard href="/signup" style={styles.card}>
+        <Card style={styles.card}>
           <div style={styles.cardTop}>
             <h2 style={styles.cardTitle}>I'm a creator</h2>
             <span style={{ ...styles.badge, ...styles.badgePurple }}>CREATOR</span>
@@ -139,7 +126,7 @@ export default function Home() {
               Log in
             </a>
           </div>
-        </ClickCard>
+        </Card>
 
         <section style={styles.section} id="about">
           <p style={styles.eyebrow}>FOR CREATORS</p>
