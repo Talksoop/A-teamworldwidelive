@@ -270,11 +270,16 @@ export default function Admin() {
               </p>
             )}
           </div>
-          {fanLinked && (
-            <a href="/discover" style={styles.switchBtn}>
-              Switch to Fan mode
+          <div style={styles.headerLinks}>
+            <a href="/spotlight" style={styles.spotlightHeaderLink}>
+              ★ View Spotlight
             </a>
-          )}
+            {fanLinked && (
+              <a href="/discover" style={styles.switchBtn}>
+                Switch to Fan mode
+              </a>
+            )}
+          </div>
         </div>
         <div style={styles.tabs}>
           <button
@@ -1537,6 +1542,15 @@ function Channel({ me }) {
       </section>
 
       <section style={styles.section}>
+        <p style={styles.sectionLabel}>Platform</p>
+        <div style={styles.linkList}>
+          <a style={styles.linkRow} href="/spotlight" target="_blank" rel="noreferrer">
+            {origin}/spotlight — see every creator's current spotlight picks
+          </a>
+        </div>
+      </section>
+
+      <section style={styles.section}>
         <p style={styles.sectionLabel}>
           Followers{followers ? ` (${followers.count})` : ""}
         </p>
@@ -2027,6 +2041,24 @@ const styles = {
     color: "var(--text-dim)",
     fontSize: "0.78rem",
     margin: "4px 0 0",
+  },
+  headerLinks: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+  spotlightHeaderLink: {
+    background: "transparent",
+    border: "1px solid #ffd14f",
+    color: "#ffd14f",
+    fontWeight: 700,
+    fontSize: "0.8rem",
+    padding: "7px 12px",
+    borderRadius: "var(--radius-sm)",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
   },
   switchBtn: {
     background: "transparent",
