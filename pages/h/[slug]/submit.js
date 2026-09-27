@@ -576,6 +576,18 @@ export default function Submit() {
           <button style={styles.primaryBtn} type="submit" disabled={state === "sending"}>
             {state === "sending" ? "Sending…" : total > 0 ? `Pay ${formatPrice(total)} & submit` : "Send it in"}
           </button>
+
+          <p style={styles.disclaimer}>
+            By submitting, you confirm you have the rights to share this track and agree to our{" "}
+            <a href="/terms" target="_blank" rel="noreferrer" style={styles.disclaimerLink}>
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" target="_blank" rel="noreferrer" style={styles.disclaimerLink}>
+              Privacy Policy
+            </a>
+            . Payments are non-refundable once your submission enters the queue.
+          </p>
         </form>
       </main>
     </>
@@ -743,6 +755,17 @@ const styles = {
     fontSize: "0.95rem",
     marginTop: 4,
     boxShadow: "var(--glow-purple)",
+  },
+  disclaimer: {
+    color: "var(--text-dim)",
+    fontSize: "0.74rem",
+    lineHeight: 1.5,
+    margin: "12px 0 0",
+    opacity: 0.85,
+  },
+  disclaimerLink: {
+    color: "var(--text-dim)",
+    textDecoration: "underline",
   },
   secondaryBtn: {
     background: "transparent",
