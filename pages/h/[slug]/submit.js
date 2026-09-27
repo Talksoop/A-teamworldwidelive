@@ -52,18 +52,26 @@ export default function Submit() {
   // leaving a stale price or a closed queue's form up.
   useQueueSocket(settings?.hostId, loadSettings, "settings-updated");
 
-  // Prefill from a logged-in fan account so they don't retype it every time.
+  // Fans must be logged in to submit a track. Check on mount and bounce
+  // anonymous visitors to login before they ever see the form, carrying
+  // them back here afterward via returnTo. Also doubles as the prefill
+  // for a logged-in fan's name/email so they don't retype it every time.
+  const [fanStatus, setFanStatus] = useState("checking"); // checking | authed
   useEffect(() => {
+    if (!router.isReady) return;
     fetch("/api/fan/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((fan) => {
         if (fan) {
           setName((prev) => prev || fan.name);
           setEmail((prev) => prev || fan.email);
+          setFanStatus("authed");
+        } else {
+          router.replace(`/fan/login?returnTo=${encodeURIComponent(`/h/${slug}/submit`)}`);
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setFanStatus("authed")); // network hiccup -- fail open rather than stranding a logged-in fan
+  }, [router.isReady, slug]);
 
   // Returning from Stripe: poll until the webhook has confirmed payment, then
   // either prompt for a bonus song or wrap up.
@@ -213,6 +221,17 @@ export default function Submit() {
       setState("error");
       setError(err.message);
     }
+  }
+
+  if (fanStatus !== "authed") {
+    return (
+      <main style={styles.main}>
+        <div style={styles.card}>
+          <div style={styles.pulse} aria-hidden="true" />
+          <h1 style={styles.doneTitle}>Loading…</h1>
+        </div>
+      </main>
+    );
   }
 
   if (state === "checking-payment") {

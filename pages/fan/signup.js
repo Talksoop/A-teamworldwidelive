@@ -3,6 +3,15 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import BackButton from "../../lib/BackButton";
 
+// Only ever redirect somewhere on this same site -- an untrusted ?returnTo
+// value must never become an open redirect to an attacker's domain.
+function safeReturnTo(value) {
+  if (typeof value === "string" && value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+  return "/discover";
+}
+
 export default function FanSignup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,7 +35,7 @@ export default function FanSignup() {
       setError(data.error || "Couldn't create that account.");
       return;
     }
-    router.push("/discover");
+    router.push(safeReturnTo(router.query.returnTo));
   }
 
   return (
@@ -74,7 +83,7 @@ export default function FanSignup() {
           </div>
           <a
             style={styles.googleBtn}
-            href={`/api/auth/google/start?role=fan&returnTo=${encodeURIComponent("/discover")}`}
+            href={`/api/auth/google/start?role=fan&returnTo=${encodeURIComponent(safeReturnTo(router.query.returnTo))}`}
           >
             Continue with Google
           </a>

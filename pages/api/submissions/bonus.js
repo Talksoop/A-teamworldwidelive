@@ -2,6 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { broadcastQueueUpdate } from "../../../lib/realtime";
 import { rateLimited } from "../../../lib/rateLimit";
 import { notifyHostNewSubmission } from "../../../lib/notifications";
+import { getSessionFanId } from "../../../lib/fanAuth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -9,6 +10,11 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
   if (rateLimited(req, res, "bonus", { windowMs: 10 * 60 * 1000, max: 15 })) return;
+
+  const fanId = getSessionFanId(req);
+  if (!fanId) {
+    return res.status(401).json({ error: "Log in to submit a track." });
+  }
 
   const { parentId, name, email, songName, link, message, sourceType } = req.body || {};
   const isUpload = sourceType === "UPLOAD";
@@ -46,6 +52,7 @@ export default async function handler(req, res) {
   const bonus = await prisma.submission.create({
     data: {
       hostId: parent.hostId,
+      fanId,
       name: name.trim(),
       email: email ? email.trim() : null,
       songName: songName.trim(),

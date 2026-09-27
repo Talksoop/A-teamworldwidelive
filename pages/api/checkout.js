@@ -13,6 +13,11 @@ export default async function handler(req, res) {
   }
   if (rateLimited(req, res, "checkout", { windowMs: 10 * 60 * 1000, max: 15 })) return;
 
+  const fanId = getSessionFanId(req);
+  if (!fanId) {
+    return res.status(401).json({ error: "Log in to submit a track." });
+  }
+
   const { slug, name, email, songName, link, message, sourceType, skipOfferId, reactOfferId } =
     req.body || {};
   const isUpload = sourceType === "UPLOAD";
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
 
   const data = {
     hostId: host.id,
-    fanId: getSessionFanId(req),
+    fanId,
     name: name.trim(),
     email: email ? email.trim() : null,
     songName: songName.trim(),

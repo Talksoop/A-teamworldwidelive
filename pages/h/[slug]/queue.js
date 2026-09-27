@@ -10,9 +10,28 @@ export default function QueueView() {
   const [data, setData] = useState({ playing: null, queue: [] });
   const [hostId, setHostId] = useState(null);
   const [search, setSearch] = useState("");
+  const [fanStatus, setFanStatus] = useState("checking"); // checking | authed
+
+  // Viewing the live queue requires a fan login -- check on mount and bounce
+  // anonymous visitors to login before showing anything, carrying them back
+  // here afterward via returnTo. This is why Discover -> creator was landing
+  // straight on the queue with no auth check before this change.
+  useEffect(() => {
+    if (!router.isReady) return;
+    fetch("/api/fan/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fan) => {
+        if (fan) {
+          setFanStatus("authed");
+        } else {
+          router.replace(`/fan/login?returnTo=${encodeURIComponent(`/h/${slug}/queue`)}`);
+        }
+      })
+      .catch(() => setFanStatus("authed")); // network hiccup -- fail open rather than stranding a logged-in fan
+  }, [router.isReady, slug]);
 
   const load = useCallback(async () => {
-    if (!slug) return;
+    if (!slug || fanStatus !== "authed") return;
     try {
       const res = await fetch(`/api/current?slug=${slug}`);
       const json = await res.json();
@@ -21,13 +40,13 @@ export default function QueueView() {
     } catch {
       // keep last known state
     }
-  }, [slug]);
+  }, [slug, fanStatus]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useQueueSocket(hostId, load);
+  useQueueSocket(fanStatus === "authed" ? hostId : null, load);
 
   const filteredQueue = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -37,6 +56,19 @@ export default function QueueView() {
         (item.songName || "").toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
     );
   }, [data.queue, search]);
+
+  if (fanStatus !== "authed") {
+    return (
+      <>
+        <Head>
+          <title>Queue — {slug}</title>
+        </Head>
+        <main style={styles.main}>
+          <p style={styles.empty}>Loading…</p>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>

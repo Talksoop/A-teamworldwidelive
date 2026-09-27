@@ -11,6 +11,15 @@ const GOOGLE_ERRORS = {
   suspended: "This account has been suspended.",
 };
 
+// Only ever redirect somewhere on this same site -- an untrusted ?returnTo
+// value must never become an open redirect to an attacker's domain.
+function safeReturnTo(value) {
+  if (typeof value === "string" && value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+  return "/discover";
+}
+
 export default function FanLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +48,7 @@ export default function FanLogin() {
       setError(data.error || "Couldn't log in.");
       return;
     }
-    router.push("/discover");
+    router.push(safeReturnTo(router.query.returnTo));
   }
 
   return (
@@ -78,7 +87,7 @@ export default function FanLogin() {
           </div>
           <a
             style={styles.googleBtn}
-            href={`/api/auth/google/start?role=fan&returnTo=${encodeURIComponent("/discover")}`}
+            href={`/api/auth/google/start?role=fan&returnTo=${encodeURIComponent(safeReturnTo(router.query.returnTo))}`}
           >
             Continue with Google
           </a>
