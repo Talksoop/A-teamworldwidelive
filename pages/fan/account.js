@@ -34,6 +34,39 @@ export default function FanAccount() {
     window.location.href = "/";
   }
 
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+
+  function startEditingName() {
+    setNameInput(fan?.name || "");
+    setNameError("");
+    setEditingName(true);
+  }
+
+  async function saveName() {
+    if (!nameInput.trim()) {
+      setNameError("Display name can't be empty.");
+      return;
+    }
+    setNameSaving(true);
+    setNameError("");
+    const res = await fetch("/api/fan/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nameInput.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setNameSaving(false);
+    if (!res.ok) {
+      setNameError(data.error || "Couldn't save that name.");
+      return;
+    }
+    setFan((prev) => (prev ? { ...prev, name: data.name } : prev));
+    setEditingName(false);
+  }
+
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -74,7 +107,38 @@ export default function FanAccount() {
       </Head>
       <SiteNav />
       <main style={styles.main}>
-        <h1 style={styles.title}>{fan?.name}</h1>
+        {editingName ? (
+          <div style={styles.nameEditRow}>
+            <input
+              style={styles.nameInput}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              maxLength={60}
+              autoFocus
+            />
+            <button style={styles.smallBtn} onClick={saveName} disabled={nameSaving}>
+              {nameSaving ? "Saving…" : "Save"}
+            </button>
+            <button
+              style={styles.smallBtnGhost}
+              onClick={() => {
+                setEditingName(false);
+                setNameError("");
+              }}
+              disabled={nameSaving}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div style={styles.nameRow}>
+            <h1 style={styles.title}>{fan?.name}</h1>
+            <button style={styles.editLink} onClick={startEditingName}>
+              Edit
+            </button>
+          </div>
+        )}
+        {nameError && <p style={styles.error}>{nameError}</p>}
         <p style={styles.sub}>{fan?.email}</p>
 
         <section style={styles.section}>
@@ -179,6 +243,57 @@ const styles = {
     color: "var(--text-dim)",
     fontSize: "0.85rem",
     margin: "4px 0 28px",
+  },
+  nameRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  editLink: {
+    background: "transparent",
+    border: "none",
+    color: "var(--cyan)",
+    fontSize: "0.8rem",
+    fontWeight: 600,
+    textDecoration: "underline",
+    padding: 0,
+  },
+  nameEditRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  nameInput: {
+    background: "var(--panel-raised)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 10px",
+    color: "var(--text)",
+    fontSize: "1rem",
+    outline: "none",
+    flex: "1 1 180px",
+    minWidth: 0,
+  },
+  smallBtn: {
+    background: "var(--gradient)",
+    color: "#05060e",
+    border: "none",
+    fontWeight: 700,
+    padding: "8px 14px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
+  },
+  smallBtnGhost: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    fontWeight: 600,
+    padding: "8px 14px",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
   },
   section: {
     marginBottom: 30,

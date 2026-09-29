@@ -560,7 +560,7 @@ export default function Admin() {
         ) : tab === "radio" ? (
           <RadioRecommendations />
         ) : tab === "channel" ? (
-          <Channel me={me} />
+          <Channel me={me} onNameSaved={(name) => setMe((prev) => (prev ? { ...prev, name } : prev))} />
         ) : (
           <Platform />
         )}
@@ -1440,9 +1440,43 @@ function AmaCard({ request, onReplied, answered }) {
   );
 }
 
-function Channel({ me }) {
+function Channel({ me, onNameSaved }) {
   const [connecting, setConnecting] = useState(false);
   const [checked, setChecked] = useState(false);
+
+  const [nameInput, setNameInput] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameError, setNameError] = useState("");
+
+  useEffect(() => {
+    if (me) setNameInput(me.name || "");
+  }, [me]);
+
+  async function saveName() {
+    if (!nameInput.trim()) {
+      setNameError("Display name can't be empty.");
+      return;
+    }
+    setNameSaving(true);
+    setNameError("");
+    setNameSaved(false);
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nameInput.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setNameSaving(false);
+    if (!res.ok) {
+      setNameError(data.error || "Couldn't save that name.");
+      return;
+    }
+    setNameInput(data.name);
+    setNameSaved(true);
+    if (onNameSaved) onNameSaved(data.name);
+  }
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [pwError, setPwError] = useState("");
@@ -1565,6 +1599,25 @@ function Channel({ me }) {
 
   return (
     <div>
+      <section style={styles.section}>
+        <p style={styles.sectionLabel}>Display name</p>
+        <p style={styles.hint}>Shown on your public pages and in your queue — your URL (/h/{me.slug}) stays the same.</p>
+        <input
+          style={{ ...styles.input, width: "100%", maxWidth: 320 }}
+          value={nameInput}
+          onChange={(e) => {
+            setNameInput(e.target.value);
+            setNameSaved(false);
+          }}
+          maxLength={60}
+        />
+        {nameError && <p style={styles.error}>{nameError}</p>}
+        {nameSaved && <p style={styles.hint}>✓ Saved.</p>}
+        <button style={styles.saveBtn} onClick={saveName} disabled={nameSaving}>
+          {nameSaving ? "Saving…" : "Save name"}
+        </button>
+      </section>
+
       <section style={styles.section}>
         <p style={styles.sectionLabel}>Your public pages</p>
         <div style={styles.linkList}>

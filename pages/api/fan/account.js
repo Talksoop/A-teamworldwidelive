@@ -6,8 +6,22 @@ export default async function handler(req, res) {
   if (!fanId) {
     return res.status(401).json({ error: "Not authorized." });
   }
+
+  if (req.method === "PATCH") {
+    const { name } = req.body || {};
+    if (typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "Display name can't be empty." });
+    }
+    const trimmed = name.trim();
+    if (trimmed.length > 60) {
+      return res.status(400).json({ error: "Display name must be 60 characters or fewer." });
+    }
+    const updated = await prisma.fan.update({ where: { id: fanId }, data: { name: trimmed } });
+    return res.status(200).json({ id: updated.id, name: updated.name });
+  }
+
   if (req.method !== "DELETE") {
-    res.setHeader("Allow", ["DELETE"]);
+    res.setHeader("Allow", ["PATCH", "DELETE"]);
     return res.status(405).end();
   }
 
